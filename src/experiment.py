@@ -22,6 +22,7 @@ class Experiment:
             return result.iloc[0,4]
         else: 
             return None
-        
+
+
     # Debug print to confirm method existence
     print("Experiment class loaded with get_experiment_path method.")
