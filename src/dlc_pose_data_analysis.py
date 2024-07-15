@@ -1,4 +1,4 @@
-"""
+'''
 Analysis of Pose Data from DLC
 
 Objective:
@@ -15,7 +15,7 @@ Output Metrics:
     - Averaged Instant Speed: Calculates the animal's average speed over a set period.
     - Activity Level Classification: Categorizes the animal's activity as low, high, or NA (based on a movement threshold) and provides the percentage time spent in each category.
 # .\.venv\Scripts\activate
-"""
+'''
 import sys
 import os
 import pandas as pd
@@ -48,8 +48,8 @@ print('Loading the list of experiments...')
 if os.path.exists(csvFilePath):
     print(f">   The file containing the list exists: {csvFilePath}.")
     try: # Read the CSV file into a DataFrame
-        experimentsTable = pd.read_csv(csvFilePath, sep=';')
-        path_list = experimentsTable.iloc[:,4]
+        experiments_table = pd.read_csv(csvFilePath, sep=';')
+        path_list = experiments_table.iloc[:,4]
         print(f">   It lists {path_list.size} experiments.")
     except Exception as e:
         print(f"Error reading the CSV file: {e}")
@@ -67,19 +67,19 @@ if single_experiment == 1:
         compound = "21",
         dose = "1", # mg/kg
         timepoint = 0, # hours
-        experimentsTable=experimentsTable,
+        experiments_table=experiments_table,
     ) 
     
 # Multiple experiments to analyze listed in a csv file 
 elif single_experiment == 0: 
     
         # Assuming the paths to DLC output are in the 5th column, extract that column, convert the DataFrame column to a list
-        Experiments_list = experimentsTable.iloc[:, 4].tolist()
+        Experiments_list = experiments_table.iloc[:, 4].tolist()
         # Get variable names from the DataFrame if you need them for reference
-        variableNames = experimentsTable.columns.tolist()
+        variableNames = experiments_table.columns.tolist()
         for i in path_list.index:
             print(f">   Starting to analyze experiment {i+1} / {path_list.size}: ")
-            print(f">   Animal ID {experimentsTable.iloc[i,0]}, compound {experimentsTable.iloc[i,1]}, dose {experimentsTable.iloc[i,2]} mg/kg, timepoint {experimentsTable.iloc[i,3]} h post injection")
+            print(f">   Animal ID {experiments_table.iloc[i,0]}, compound {experiments_table.iloc[i,1]}, dose {experiments_table.iloc[i,2]} mg/kg, timepoint {experiments_table.iloc[i,3]} h post injection")
 
             path_to_experiment = path_list[i]
             
@@ -90,7 +90,7 @@ elif single_experiment == 0:
             if os.path.exists(path_to_experiment):
                 
                 print(f"The file {path_to_experiment} exists.")
-                point_positions = get_positions(path_to_experiment)
+                # TODO: Instance of Expeirment here
             else:
                 print(f"The file {path_to_experiment} does not exists")
                 exit(1)
