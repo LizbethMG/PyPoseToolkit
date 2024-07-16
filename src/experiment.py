@@ -39,7 +39,7 @@ class Experiment:
         """
         Finds the first Excel file in the specified folder and reads a specific sheet.
         Inputs:
-        - folder_path: Path to the folder containing the Excel file.        
+        - folder_path: Path to the folder containing the Excel file.
         Outputs:
         - DataFrame containing the data from the specified sheet, or None if no Excel file is found or an error occurs.
         """
@@ -58,7 +58,7 @@ class Experiment:
                 self.bodypart_positions = pd.read_excel(file_path, sheet_name='Coord_bodyparts')
                 video_min = self.bodypart_positions['Frames_ms'].iloc[-1] / (60 * 1000)  # Video duration in minutes
                 nb_frames = self.bodypart_positions['Frames_ms'].shape[0]
-                print(f">   Video duration {video_min} min, with {nb_frames} frames")
+                print(f">       Video duration {video_min} min, with {nb_frames} frames")
 
                 # Note: when there are few visible points there is no centroid calculation possible and values are nan.
                 # When this happens in the last frames, there is a mismatch in the dataframes that needs to be corrected
@@ -68,7 +68,8 @@ class Experiment:
                 rows_bodypart = self.bodypart_positions.shape[0]
                 rows_point = self.point_positions.shape[0]
 
-                # If the number of rows in point_positions is less than bodypart_positions, fill the missing rows with NaN
+                # If the number of rows in point_positions is less than bodypart_positions, fill the missing rows
+                # with NaN
                 if rows_point < rows_bodypart:
                     # Calculate the number of rows to add
                     rows_to_add = rows_bodypart - rows_point
@@ -82,11 +83,13 @@ class Experiment:
                     # Verify the number of rows are now the same
                     assert self.point_positions_extended.shape[0] == self.bodypart_positions.shape[
                         0], "The number of rows in point_positions still does not match bodypart_positions"
-                    print(f"Modified point_positions DataFrame with new rows added\n")
+                    print(f">       Modified point_positions DataFrame with new rows added")
                 else:
                     self.point_positions_extended = self.points_positions
-                    print("The point_positions DataFrame is already longer or equal in rows compared to bodpart_positions.")
+                    print(
+                        f">       The point_positions DataFrame is already longer or equal in rows compared to "
+                        f"bodpart_positions.")
             except Exception as e:
-                print(f"An error occurred while reading the Excel file: {e}")
+                print(f" X: An error occurred while reading the Excel file: {e}")
         else:
-            print("No Excel files found in the specified folder.")
+            print("X: No Excel files found in the specified folder.")
