@@ -1,6 +1,6 @@
   # Pose Analysis with Python 
 
-This repository contains some useful functions that I created to post-analyze pose data (for example, coming from DeepLabCut)
+This repository contains a collection of useful functions created to post-analyze pose data, such as data generated from DeepLabCut.
 ## Table of Contents
 - [I. Introduction](#item-one)
 - [II. Pre-processing techniques](#item-two)
