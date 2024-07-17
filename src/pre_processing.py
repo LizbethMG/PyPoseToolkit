@@ -1,7 +1,7 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 from scipy.interpolate import interp1d
+from scipy.signal import medfilt
 
 def slmg_remove_outliers(x, y, zscore_threshold, plot=True):
     """
@@ -21,7 +21,6 @@ def slmg_remove_outliers(x, y, zscore_threshold, plot=True):
     # Colors for plots:
     light_blue = '#92DCE5'
     raspberry = '#D81159'
-    quinacridone = '#8F2D56'
     midnight_green = '#004E64'
     xanthous = '#FFBC42'
 
@@ -137,8 +136,8 @@ def slmg_interpolate(x, y, threshold_gap, plot=True):
             light_blue = '#92DCE5'
             raspberry = '#D81159'
             quinacridone = '#8F2D56'
-            midnight_green = '#004E64'
             xanthous = '#FFBC42'
+
             fig = go.Figure()
 
             fig.add_trace(go.Scatter(x=np.arange(len(x_interp)), y=x_interp, mode='lines', name='Interpolated X',
@@ -158,8 +157,8 @@ def slmg_interpolate(x, y, threshold_gap, plot=True):
             fig.show()
 
     print('2       Apply spline interpolation while handling large gaps.')
-    print(f'         > Make evident NAN values.')
-    print(f'         > Apply interpolation to fill small gaps.')
+    print(f'        > Make evident NAN values.')
+    print(f'        > Apply interpolation to fill small gaps.')
 
     # Mark NaNs and interpolate the data
     x_interp, x_nan_indices = mark_and_interpolate(x, threshold_gap)
@@ -178,3 +177,49 @@ def slmg_interpolate(x, y, threshold_gap, plot=True):
     if plot:
         # Plot the original and interpolated data
         plot_data(x, y, x_interp, y_interp, x_nan_indices, y_nan_indices)
+
+    return x_interp, y_interp, {
+        'x_percentageNaNs': x_perc_nans,
+        'y_percentageNaNs': y_perc_nans}
+
+def slmg_smooth(x,y, window_size, plot=True):
+    """
+        slmg_smooth - Smooth the x and y data using a median filter.
+
+        Parameters:
+            x (array): x coordinates.
+            y (array): y coordinates.
+            window_size (int): Window size for the median filter.
+            plot (bool): Flag to plot the data.
+
+        Returns:
+            tuple: Smoothed x and y coordinates.
+        """
+    print('3       Smooth the x and y data using a median filter with a windows size of {window_size}')
+
+    # Apply median filter
+    x_smooth = medfilt(x, window_size)
+    y_smooth = medfilt(y, window_size)
+
+    # Plot the smoothed data if plot flag is True
+    if plot:
+        raspberry = '#D81159'
+        xanthous = '#FFBC42'
+
+        fig = go.Figure()
+
+        fig.add_trace(go.Scatter(x=np.arange(len(x)), y=x, mode='lines', name='X',
+                                 line=dict(color=raspberry)))
+        fig.add_trace(go.Scatter(x=np.arange(len(x_smooth)), y=x_smooth, mode='lines', name='Smoothed X',
+                                 line=dict(color=xanthous)))
+
+        fig.add_trace(go.Scatter(x=np.arange(len(y)), y=y, mode='lines', name='Y',
+                                 line=dict(color=raspberry)))
+        fig.add_trace(go.Scatter(x=np.arange(len(y_smooth)), y=y_smooth, mode='lines', name='Smoothed Y',
+                                 line=dict(color=xanthous)))
+
+        fig.update_layout(title='Smoothed Time Series',
+                          xaxis_title='Index', yaxis_title='Value')
+        fig.show()
+
+    return x_smooth, y_smooth

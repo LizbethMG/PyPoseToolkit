@@ -75,11 +75,12 @@ if single_experiment == 1:
     x = single_experiment.point_positions_extended['x_centroid']
     y = single_experiment.point_positions_extended['y_centroid']
     zscore_threshold = 3
-    window_size = 5
+    window_size = 25
     gap_threshold = 10
 
     x1, y1, pre_proc_results1 = slmg_remove_outliers(x, y, zscore_threshold, plot=True)
-    slmg_interpolate(x1, y1, gap_threshold, plot=True)
+    x2, y2, pre_proc_results2 = slmg_interpolate(x1, y1, gap_threshold, plot=True)
+    x3, y3 = slmg_smooth(x2, y2, window_size, plot=True)
 
 # Multiple experiments to analyze listed in a csv file 
 elif single_experiment == 0:
