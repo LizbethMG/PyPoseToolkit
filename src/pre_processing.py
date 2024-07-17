@@ -1,7 +1,8 @@
 import numpy as np
 import plotly.graph_objects as go
 from scipy.interpolate import interp1d
-from scipy.signal import medfilt
+from scipy.ndimage import gaussian_filter1d
+import numpy as np
 
 def slmg_remove_outliers(x, y, zscore_threshold, plot=True):
     """
@@ -195,11 +196,40 @@ def slmg_smooth(x,y, window_size, plot=True):
         Returns:
             tuple: Smoothed x and y coordinates.
         """
-    print('3       Smooth the x and y data using a median filter with a windows size of {window_size}')
 
-    # Apply median filter
-    x_smooth = medfilt(x, window_size)
-    y_smooth = medfilt(y, window_size)
+    def custom_medfilt(data, window_size):
+        """
+        Apply a median filter to the data while preserving NaN values.
+
+        Parameters:
+            data (array): Input data.
+            window_size (int): Window size for the median filter.
+
+        Returns:
+            array: Smoothed data with NaNs preserved.
+        """
+        half_window = window_size // 2
+        data_smooth = np.copy(data)
+
+        for i in range(len(data)):
+            if np.isnan(data[i]):
+                continue
+            start = max(0, i - half_window)
+            end = min(len(data), i + half_window + 1)
+            window_data = data[start:end]
+            window_data = window_data[~np.isnan(window_data)]
+            if len(window_data) > 0:
+                data_smooth[i] = np.median(window_data)
+
+        return data_smooth
+
+    print(f'3       Smooth the x and y data using a median filter with a windows size of {window_size}')
+
+    # Apply median filter while preserving NaN values and restore NaNs to their original positions after filtering.
+    # Change variable names to use the original data arrays (x, y) instead of interpolated ones (x_interp, y_interp).
+
+    x_smooth = custom_medfilt(x, window_size)
+    y_smooth = custom_medfilt(y, window_size)
 
     # Plot the smoothed data if plot flag is True
     if plot:
@@ -222,4 +252,144 @@ def slmg_smooth(x,y, window_size, plot=True):
                           xaxis_title='Index', yaxis_title='Value')
         fig.show()
 
-    return x_smooth, y_smooth
+    x_num_nans = np.isnan(x_smooth).sum()
+    y_num_nans = np.isnan(y_smooth).sum()
+    x_perc_nans = round((x_num_nans / len(x_smooth)) * 100, 2)
+    y_perc_nans = round((y_num_nans / len(y_smooth)) * 100, 2)
+
+    return x_smooth, y_smooth, {
+        'x_percentageNaNs': x_perc_nans,
+        'y_percentageNaNs': y_perc_nans}
+
+
+def gaussian_smooth(x, y, sigma, plot=True):
+    """
+    Apply Gaussian smoothing to the x and y coordinates while preserving NaN values.
+
+    Parameters:
+        x (array): x coordinates.
+        y (array): y coordinates.
+        sigma (float): Standard deviation for Gaussian kernel.
+        plot (bool): Flag to plot the data.
+
+    Returns:
+        tuple: Smoothed x and y coordinates.
+    """
+    x_smooth = gaussian_filter1d(np.nan_to_num(x, nan=np.nan), sigma=sigma)
+    y_smooth = gaussian_filter1d(np.nan_to_num(y, nan=np.nan), sigma=sigma)
+
+    # Restore NaNs to the filtered data
+    x_smooth[np.isnan(x)] = np.nan
+    y_smooth[np.isnan(y)] = np.nan
+
+    # Ensure the number of NaNs is the same
+    assert np.isnan(x_smooth).sum() == np.isnan(y_smooth).sum()
+
+
+    if plot:
+        raspberry = '#D81159'
+        xanthous = '#FFBC42'
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=np.arange(len(x)), y=x, mode='lines', name='Original X', line=dict(color=raspberry)))
+        fig.add_trace(go.Scatter(x=np.arange(len(x_smooth)), y=x_smooth, mode='lines', name='Smoothed X', line=dict(color=xanthous)))
+        fig.add_trace(go.Scatter(x=np.arange(len(y)), y=y, mode='lines', name='Original Y', line=dict(color=raspberry)))
+        fig.add_trace(go.Scatter(x=np.arange(len(y_smooth)), y=y_smooth, mode='lines', name='Smoothed Y', line=dict(color=xanthous)))
+        fig.update_layout(title='Gaussian Smoothing', xaxis_title='Index', yaxis_title='Value')
+        fig.show()
+
+    x_num_nans = np.isnan(x_smooth).sum()
+    y_num_nans = np.isnan(y_smooth).sum()
+    x_perc_nans = round((x_num_nans / len(x_smooth)) * 100, 2)
+    y_perc_nans = round((y_num_nans / len(y_smooth)) * 100, 2)
+
+    return x_smooth, y_smooth, {
+        'x_percentageNaNs': x_perc_nans,
+        'y_percentageNaNs': y_perc_nans}
+
+def slmg_recap_preprocessing(x, y, x_smooth, y_smooth, x_percentageNaNs, y_percentageNaNs, xs_percentageNaNs,
+                             ys_percentageNaNs, fps=25):
+    """
+    slmg_recap_preprocessing - Recap the pre-processing steps, perform checks, analyze noise, and plot the results.
+
+    Parameters:
+        x (array): Original x coordinates.
+        y (array): Original y coordinates.
+        x_smooth (array): Smoothed x coordinates.
+        y_smooth (array): Smoothed y coordinates.
+        x_percentageNaNs (float): Percentage of NaN values in original x data.
+        y_percentageNaNs (float): Percentage of NaN values in original y data.
+        xs_percentageNaNs (float): Percentage of NaN values in smoothed x data.
+        ys_percentageNaNs (float): Percentage of NaN values in smoothed y data.
+        fps (int): Frames per second. Default is 25.
+
+    Returns:
+        dict: Summary of the pre-processing results.
+    """
+
+    if len(x) != len(x_smooth):
+        raise ValueError('The lengths of x and pre-processed x do not match.')
+
+    if x_percentageNaNs != y_percentageNaNs:
+        raise ValueError('The % occlusion in x and y do not match.')
+    elif xs_percentageNaNs != ys_percentageNaNs:
+        raise ValueError('The % occlusion in x pre-processes and y pre-processes do not match.')
+
+    # Level of noise before and after processing the original data
+    validIndices = ~np.isnan(x) & ~np.isnan(x_smooth)
+
+    # Calculate Mean Squared Error (MSE), ignoring NaN values
+    mse_value = np.mean((x[validIndices] - x_smooth[validIndices]) ** 2)
+
+    # Calculate the standard deviation of the noise, ignoring NaN values
+    noise_std_before = np.std(x[validIndices] - np.mean(x[validIndices]))
+    noise_std_after = np.std(x_smooth[validIndices] - np.mean(x_smooth[validIndices]))
+
+    # Calculate Signal-to-Noise Ratio (SNR) improvement
+    signal_power = np.mean(x[validIndices] ** 2)
+    snr_before = signal_power / noise_std_before ** 2
+    snr_after = signal_power / noise_std_after ** 2
+    snr_improvement = 10 * np.log10(snr_after / snr_before)
+
+    # Convert time to minutes
+    num_samples = len(x)
+    time_ms = np.arange(num_samples) * (1000 / fps)  # Each sample is (1000/fps) ms apart
+    time_minutes = time_ms / 60000
+
+    print('______________________________')
+    print('Summary of the pre-processing done:')
+    print(f'    Recording duration: {time_minutes[-1]:.2f} minutes at {fps} frames/second')
+    print('     Original data:')
+    print(f'           Number of NaN values: {np.isnan(x).sum()}')
+    print(f'           Percentage of NaN values: {x_percentageNaNs:.2f}%')
+    print('     After pre-processing:')
+    print(f'           Number of NaN values: {np.isnan(x_smooth).sum()}')
+    print(f'           Percentage of NaN values: {xs_percentageNaNs:.2f}%')
+    print(f'           Mean Squared Error (MSE) before and after smoothing: {mse_value:.4f}')
+    print(f'           Standard deviation of noise before smoothing: {noise_std_before:.4f}')
+    print(f'           Standard deviation of noise after smoothing: {noise_std_after:.4f}')
+    print(f'           SNR improvement: {snr_improvement:.4f} dB')
+
+    pre_proc_results = {
+        'recording_duration': time_minutes[-1],
+        'fps': fps,
+        'x_percentageNaNs': x_percentageNaNs,
+        'ys_percentageNaNs': ys_percentageNaNs,
+        'snr_improvement': snr_improvement
+    }
+
+    # Plot original vs pre-processed data
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(x=time_minutes, y=x, mode='lines', name='Original X', line=dict(color='#004E64')))
+    fig.add_trace(go.Scatter(x=time_minutes, y=x_smooth, mode='lines', name='Smoothed X', line=dict(color='#FFBC42')))
+
+    fig.add_trace(go.Scatter(x=time_minutes, y=y, mode='lines', name='Original Y', line=dict(color='#004E64')))
+    fig.add_trace(go.Scatter(x=time_minutes, y=y_smooth, mode='lines', name='Smoothed Y', line=dict(color='#FFBC42')))
+
+    fig.update_layout(title='Smoothed Time Series',
+                      xaxis_title='Time (minutes)', yaxis_title='Value',
+                      legend_title='Data Type')
+    fig.show()
+
+    return pre_proc_results
