@@ -78,8 +78,9 @@ if single_experiment == 1:
     window_size = 5
     gap_threshold = 10
 
-    x_smooth, y_smooth, pre_proc_results = slmg_remove_outliers(x, y, zscore_threshold, window_size,
-                                                                gap_threshold, plot=False)
+    x1, y1, pre_proc_results1 = slmg_remove_outliers(x, y, zscore_threshold, plot=True)
+    slmg_interpolate(x1, y1, gap_threshold, plot=True)
+
 # Multiple experiments to analyze listed in a csv file 
 elif single_experiment == 0:
 
