@@ -60,6 +60,24 @@ class Experiment:
                 nb_frames = self.bodypart_positions['Frames_ms'].shape[0]
                 print(f">       Video duration {video_min} min, with {nb_frames} frames")
 
+                # --- When there are more than 1 camera, load the camera id information ---
+                sheet_name = 'Coord_bodyparts'
+                column_name = 'Ch>3s'
+                # Create an ExcelFile object
+                xls = pd.ExcelFile(file_path)
+                # Check if the target sheet exists
+                if sheet_name in xls.sheet_names:
+                    # Read the specific sheet
+                    df = pd.read_excel(file_path, sheet_name=sheet_name)
+                    # Extract the specific column
+                    if column_name in df.columns:
+                        self.cam_used = df[column_name]
+                    else:
+                        print(f"Column '{column_name}' does not exist in the sheet '{sheet_name}'.")
+                else:
+                    print(f"Sheet '{sheet_name}' does not exist in the Excel file.")
+                # ---
+
                 # Note: when there are few visible points there is no centroid calculation possible and values are nan.
                 # When this happens in the last frames, there is a mismatch in the dataframes that needs to be corrected
                 # as follows :

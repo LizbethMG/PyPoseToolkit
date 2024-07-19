@@ -1,7 +1,7 @@
-import numpy as np
 import plotly.graph_objects as go
 from scipy.interpolate import interp1d
 from scipy.ndimage import gaussian_filter1d
+from scipy.interpolate import UnivariateSpline
 import numpy as np
 
 def slmg_remove_outliers(x, y, zscore_threshold, plot=True):
@@ -183,7 +183,7 @@ def slmg_interpolate(x, y, threshold_gap, plot=True):
         'x_percentageNaNs': x_perc_nans,
         'y_percentageNaNs': y_perc_nans}
 
-def slmg_smooth(x,y, window_size, plot=True):
+def slmg_median_smooth(x,y, window_size, plot=True):
     """
         slmg_smooth - Smooth the x and y data using a median filter.
 
@@ -261,8 +261,7 @@ def slmg_smooth(x,y, window_size, plot=True):
         'x_percentageNaNs': x_perc_nans,
         'y_percentageNaNs': y_perc_nans}
 
-
-def gaussian_smooth(x, y, sigma, plot=True):
+def slmg_gaussian_smooth(x, y, sigma, plot=True):
     """
     Apply Gaussian smoothing to the x and y coordinates while preserving NaN values.
 
@@ -275,6 +274,7 @@ def gaussian_smooth(x, y, sigma, plot=True):
     Returns:
         tuple: Smoothed x and y coordinates.
     """
+    print(f'3       Smooth the x and y data using a gaussian filter with a sigma value  of {sigma}')
     x_smooth = gaussian_filter1d(np.nan_to_num(x, nan=np.nan), sigma=sigma)
     y_smooth = gaussian_filter1d(np.nan_to_num(y, nan=np.nan), sigma=sigma)
 
@@ -284,7 +284,6 @@ def gaussian_smooth(x, y, sigma, plot=True):
 
     # Ensure the number of NaNs is the same
     assert np.isnan(x_smooth).sum() == np.isnan(y_smooth).sum()
-
 
     if plot:
         raspberry = '#D81159'
@@ -296,6 +295,67 @@ def gaussian_smooth(x, y, sigma, plot=True):
         fig.add_trace(go.Scatter(x=np.arange(len(y)), y=y, mode='lines', name='Original Y', line=dict(color=raspberry)))
         fig.add_trace(go.Scatter(x=np.arange(len(y_smooth)), y=y_smooth, mode='lines', name='Smoothed Y', line=dict(color=xanthous)))
         fig.update_layout(title='Gaussian Smoothing', xaxis_title='Index', yaxis_title='Value')
+        fig.show()
+
+    x_num_nans = np.isnan(x_smooth).sum()
+    y_num_nans = np.isnan(y_smooth).sum()
+    x_perc_nans = round((x_num_nans / len(x_smooth)) * 100, 2)
+    y_perc_nans = round((y_num_nans / len(y_smooth)) * 100, 2)
+
+    return x_smooth, y_smooth, {
+        'x_percentageNaNs': x_perc_nans,
+        'y_percentageNaNs': y_perc_nans}
+
+def slmg_spline_smooth(x, y, s, plot=True):
+    """
+        Apply spline smoothing to the x and y coordinates while preserving NaN values.
+
+        Parameters:
+            x (array): x coordinates.
+            y (array): y coordinates.
+            s (float): Smoothing factor.
+            plot (bool): Flag to plot the data.
+
+        Returns:
+            tuple: Smoothed x and y coordinates along with percentage of NaNs in x and y.
+        """
+    print(f'3       Smooth the x and y data using spline curves with a smoothing factor s of  {s}')
+
+    # Identify valid (non-NaN) indices
+    valid_indices = ~(np.isnan(x) | np.isnan(y))
+
+    # Ensure we have valid data points
+    if valid_indices.sum() == 0:
+        raise ValueError("All values are NaN. Cannot perform smoothing.")
+
+    # Create the spline for valid data
+    x_spline = UnivariateSpline(np.arange(len(x))[valid_indices], x[valid_indices], s=s)
+    y_spline = UnivariateSpline(np.arange(len(y))[valid_indices], y[valid_indices], s=s)
+
+    # Create copies to hold the smoothed values, preserving NaNs
+    x_smooth = np.copy(x)
+    y_smooth = np.copy(y)
+
+    # Apply spline only to the valid points
+    x_smooth[valid_indices] = x_spline(np.arange(len(x))[valid_indices])
+    y_smooth[valid_indices] = y_spline(np.arange(len(y))[valid_indices])
+
+    # Ensure the number of NaNs is the same
+    assert np.isnan(x).sum() == np.isnan(x_smooth).sum()
+    assert np.isnan(y).sum() == np.isnan(y_smooth).sum()
+
+    if plot:
+        raspberry = '#D81159'
+        xanthous = '#FFBC42'
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=np.arange(len(x)), y=x, mode='lines', name='Original X', line=dict(color=raspberry)))
+        fig.add_trace(go.Scatter(x=np.arange(len(x_smooth)), y=x_smooth, mode='lines', name='Smoothed X',
+                                 line=dict(color=xanthous)))
+        fig.add_trace(go.Scatter(x=np.arange(len(y)), y=y, mode='lines', name='Original Y', line=dict(color=raspberry)))
+        fig.add_trace(go.Scatter(x=np.arange(len(y_smooth)), y=y_smooth, mode='lines', name='Smoothed Y',
+                                 line=dict(color=xanthous)))
+        fig.update_layout(title='Spline Smoothing', xaxis_title='Index', yaxis_title='Value')
         fig.show()
 
     x_num_nans = np.isnan(x_smooth).sum()
@@ -356,19 +416,20 @@ def slmg_recap_preprocessing(x, y, x_smooth, y_smooth, x_percentageNaNs, y_perce
     time_ms = np.arange(num_samples) * (1000 / fps)  # Each sample is (1000/fps) ms apart
     time_minutes = time_ms / 60000
 
-    print('______________________________')
-    print('Summary of the pre-processing done:')
-    print(f'    Recording duration: {time_minutes[-1]:.2f} minutes at {fps} frames/second')
-    print('     Original data:')
+    print('>   ______________________________')
+    print('>   Summary of the pre-processing done:')
+    print(f'        Recording duration: {time_minutes[-1]:.2f} minutes at {fps} frames/second')
+    print('         Original data:')
     print(f'           Number of NaN values: {np.isnan(x).sum()}')
     print(f'           Percentage of NaN values: {x_percentageNaNs:.2f}%')
-    print('     After pre-processing:')
+    print('         After pre-processing:')
     print(f'           Number of NaN values: {np.isnan(x_smooth).sum()}')
     print(f'           Percentage of NaN values: {xs_percentageNaNs:.2f}%')
     print(f'           Mean Squared Error (MSE) before and after smoothing: {mse_value:.4f}')
     print(f'           Standard deviation of noise before smoothing: {noise_std_before:.4f}')
     print(f'           Standard deviation of noise after smoothing: {noise_std_after:.4f}')
     print(f'           SNR improvement: {snr_improvement:.4f} dB')
+    print('>   ______________________________')
 
     pre_proc_results = {
         'recording_duration': time_minutes[-1],
@@ -393,3 +454,80 @@ def slmg_recap_preprocessing(x, y, x_smooth, y_smooth, x_percentageNaNs, y_perce
     fig.show()
 
     return pre_proc_results
+
+def slmg_inst_speed(x,y, fps, cam_used):
+    """
+        Computes the instantaneous speed and handles camera switches (if two camaras used)
+
+        Parameters:
+        x (np.ndarray): The x-coordinate data.
+        y (np.ndarray): The y-coordinate data.
+        cam_switch_exists: True when there are camera switches (more than one camera used)
+                            False when only one camera was used
+        Sry : The camera switch data (a vector containing the camera id used)
+
+        Returns:
+         NanRate
+         MeanSpeed
+        """
+    # Initialize variable
+    nb_total_frame = x.shape[0]
+    spd = np.zeros((nb_total_frame, 4))
+    spd[0, :] = np.nan
+    tilt = []
+    # Calculate the time per frame in milliseconds
+    time_per_frame_ms = 1000 / fps
+
+    # Compute instant speed
+    for frame in range(1, nb_total_frame):
+        spd[frame, 0] = ((frame - 1) * time_per_frame_ms) / 1000  # time in seconds
+        dx = x[frame] - x[frame - 1]  # x2 - x1
+        dy = y[frame] - y[frame - 1]  # y2 - y1
+        dt = (x[frame] - x[frame - 1]) / 1000  # dt in seconds
+        d = np.sqrt((dx ** 2) + (dy ** 2))  # Euclidean distance
+        spd[frame, 1] = d / (time_per_frame_ms / 1000)  # Instantaneous velocity in pixels per second
+
+        if cam_used is not None:  # cam switch exists
+            if cam_used[frame] != cam_used[frame - 1]:  # if there is a camera switch
+                tilt.append((frame - 1) * time_per_frame_ms / 1000)  # add timestamp of the frame to tilt in seconds
+
+# Extract data for plotting
+    x_wcam = spd[:, 0]
+    y_wcam = spd[:, 1]
+
+    # Create plotly figure
+    fig = go.Figure()
+
+    # Add speed trace
+    fig.add_trace(go.Scatter(x=x_wcam, y=y_wcam, mode='lines', name='Instant Speed', line=dict(color='black')))
+
+    # Add vertical lines for camera switches
+    for switch_time in tilt:
+        fig.add_vline(x=switch_time, line=dict(color='red', dash='dash'), annotation_text='Camera Switch')
+    # Customize layout
+    fig.update_layout(
+        title='Instant speed - raw data with camera switches',
+        xaxis_title='Time (s)',
+        yaxis_title='Pixels/s',
+        showlegend=True
+    )
+
+    # Show plot
+    fig.show()
+
+    # Print NaN Rate and Mean Speed if required
+    nanRate = np.sum(np.isnan(y_wcam)) / nb_total_frame
+    meanSpeed = np.nanmean(y_wcam)
+
+    print(f'NaN Rate: {nanRate}')
+    print(f'Mean Speed: {meanSpeed}')
+
+    return nanRate, meanSpeed
+
+
+
+
+
+
+
+
