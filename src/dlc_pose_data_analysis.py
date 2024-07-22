@@ -104,10 +104,10 @@ if single_experiment == 1:
     print('>   Verify more than one camara used:')
     if hasattr(single_experiment, 'cam_used'):
         print(">   More than one camara used.")
-        NanRate, MeanSpeed = slmg_inst_speed(x, y, fps, single_experiment.cam_used)
+        NanRate, MeanSpeed = slmg_inst_speed(x3, y3, fps, single_experiment.cam_used)
     else:
         print(">   Only one camara used.")
-        NanRate, MeanSpeed = slmg_inst_speed(x, y, fps, None)
+        NanRate, MeanSpeed = slmg_inst_speed(x3, y3, fps, None)
 
 # Multiple experiments to analyze listed in a csv file 
 elif single_experiment == 0:

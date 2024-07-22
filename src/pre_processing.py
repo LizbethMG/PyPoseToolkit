@@ -476,37 +476,43 @@ def slmg_inst_speed(x,y, fps, cam_used):
     spd[0, :] = np.nan
     tilt = []
     # Calculate the time per frame in milliseconds
-    time_per_frame_ms = 1000 / fps
+    time_per_frame_s = 1 / fps
 
     # Compute instant speed
     for frame in range(1, nb_total_frame):
-        spd[frame, 0] = ((frame - 1) * time_per_frame_ms) / 1000  # time in seconds
+        spd[frame, 0] = frame * time_per_frame_s  # time in seconds
         dx = x[frame] - x[frame - 1]  # x2 - x1
         dy = y[frame] - y[frame - 1]  # y2 - y1
         dt = (x[frame] - x[frame - 1]) / 1000  # dt in seconds
-        d = np.sqrt((dx ** 2) + (dy ** 2))  # Euclidean distance
-        spd[frame, 1] = d / (time_per_frame_ms / 1000)  # Instantaneous velocity in pixels per second
+        d = np.sqrt(dx**2 + dy**2)  # Euclidean distance
+        spd[frame, 1] = d / time_per_frame_s  # Instantaneous velocity in pixels per second
 
         if cam_used is not None:  # cam switch exists
             if cam_used[frame] != cam_used[frame - 1]:  # if there is a camera switch
-                tilt.append((frame - 1) * time_per_frame_ms / 1000)  # add timestamp of the frame to tilt in seconds
+                tilt.append(frame * time_per_frame_s)  # add timestamp of the frame to tilt in seconds
 
-# Extract data for plotting
+    # Extract data for plotting
     x_wcam = spd[:, 0]
     y_wcam = spd[:, 1]
 
+    # Identify NaN values
+    nan_indices = np.isnan(y_wcam)
     # Create plotly figure
     fig = go.Figure()
 
     # Add speed trace
-    fig.add_trace(go.Scatter(x=x_wcam, y=y_wcam, mode='lines', name='Instant Speed', line=dict(color='black')))
+    fig.add_trace(go.Scatter(x=x_wcam, y=y_wcam, mode='lines', name='Instant Speed', line=dict(color='black', width = 1)))
+    # Add small gray dots for NaN values at y=0
+    fig.add_trace(go.Scatter(x=x_wcam[nan_indices], y=np.zeros(np.sum(nan_indices)), mode='markers',
+                             name='NaN Values', marker=dict(color='gold', size=3)))
 
-    # Add vertical lines for camera switches
-    for switch_time in tilt:
-        fig.add_vline(x=switch_time, line=dict(color='red', dash='dash'), annotation_text='Camera Switch')
+    if cam_used is not None:  # cam switch exists
+        # Add vertical lines for camera switches
+        for switch_time in tilt:
+            fig.add_vline(x=switch_time, line=dict(color='darksalmon'), annotation_text='Camera Switch')
     # Customize layout
     fig.update_layout(
-        title='Instant speed - raw data with camera switches',
+        title='Instant speed - raw data with camera switches and nan values',
         xaxis_title='Time (s)',
         yaxis_title='Pixels/s',
         showlegend=True
