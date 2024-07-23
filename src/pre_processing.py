@@ -4,6 +4,7 @@ from scipy.ndimage import gaussian_filter1d
 from scipy.interpolate import UnivariateSpline
 from scipy.signal import savgol_filter
 from scipy.signal import medfilt
+import warnings
 
 import numpy as np
 
@@ -768,3 +769,59 @@ def slmg_recalibrate_data(data, fps, sync_time):
     print(f'        Original recording duration: {time_minutes2[-1]:.2f} minutes')
 
     return recalibrated_data
+
+
+def slmg_window_data(data, start_time=None, end_time=None, duration=None, fps=25):
+    """
+        Trims the data based on start and end time limits or duration from the start.
+
+        Parameters:
+        - data: np.ndarray with shape (n_samples,), representing the signal values.
+        - start_time: Optional. Time in seconds to start the window.
+        - end_time: Optional. Time in seconds to end the window.
+        - duration: Optional. Duration in seconds for the window starting from start_time or beginning of data.
+        - fps: Frames per second of the data. Default is 1.
+
+        Returns:
+        - np.ndarray containing the windowed data.
+        """
+    # Convert sync_time to frame number
+    print(f"*   Trims the data based on start and end time limits OR duration from the start. ")
+
+    n_samples = len(data)
+    max_time = n_samples / fps  # Maximum time based on the length of data and fps
+
+    if duration is not None:
+        if start_time is not None or end_time is not None:
+            raise ValueError("Provide either start_time and end_time or duration, not both.")
+        start_time = 0 if start_time is None else start_time
+        end_time = start_time + duration
+
+    if start_time is None or end_time is None:
+        raise ValueError("Either start_time and end_time or start_time and duration must be provided.")
+
+    # Ensure the times are within the length of data
+    print(f'        Desired start time in s: {start_time} and end time in s: {end_time}')
+    start_time = max(0, min(start_time, max_time))
+    end_time = max(0, min(end_time, max_time))
+
+    if end_time > max_time:
+        warnings.warn("The specified window exceeds the length of the data. The window will be truncated.")
+
+    # Convert start_time and end_time to frame numbers
+    start_frame = int(start_time * fps)
+    end_frame = int(end_time * fps)
+
+    # Ensure end_frame is within the length of data
+    end_frame = min(n_samples - 1, end_frame)
+
+    # Window the data based on frame indices
+    windowed_data = data[start_frame:end_frame + 1]
+
+    num_samples = len(windowed_data)
+    time_ms = np.arange(num_samples) * (1000 / fps)  # Each sample is (1000/fps) ms apart
+    time_minutes = time_ms / 60000
+
+    print(f'        New recording duration: {time_minutes[-1]:.2f} minutes')
+
+    return windowed_data
