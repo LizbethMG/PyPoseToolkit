@@ -75,20 +75,23 @@ if single_experiment == 1:
     x = single_experiment.point_positions_extended['x_centroid']
     y = single_experiment.point_positions_extended['y_centroid']
 
-    # ---------- To define by user -------------------
+    # ----------> To define by user <-------------------
     fps = 25  # Video frames per seconds
     zscore_threshold = 4  # for outlier removal
     gap_threshold = 25  # for interpolation
-    window_size = 15  # for median filter smoothing
+    window_size = 30  # for median filter smoothing
     sigma = 2  # for Gaussian smoothing
     s = 100  # for Spline smoothing
+    window_length = 30 # for Savitzky-Golay filter
+    polyorder = 3 # for Savitzky-Golay filter
+    sync_time = 60 # Sync signal in s (For example LED in video on)
     # ----------- -------------------------------------
 
     x1, y1, outlier_stats = slmg_remove_outliers(x, y, zscore_threshold, plot=False)
     x2, y2, interpol_stats = slmg_interpolate(x1, y1, gap_threshold, plot=False)
-    # x3, y3, smooth_stats = slmg_median_smooth(x2, y2, window_size, plot=False)
-    x3, y3, smooth_stats = slmg_gaussian_smooth(x2, y2, sigma)
+    x3, y3, smooth_stats = slmg_gaussian_smooth(x2, y2, sigma, plot=False)
     # x3, y3, smooth_stats = slmg_spline_smooth(x2, y2, s)
+    # x3, y3, smooth_stats = slmg_median_smooth(x2, y2, window_size, plot=False)
 
     # Pass the required stats for the recap function
     x_percentageNaNs = outlier_stats['x_percentageNaNs']
@@ -99,15 +102,32 @@ if single_experiment == 1:
     recap_results = slmg_recap_preprocessing(x, y, x3, y3,
                                              x_percentageNaNs, y_percentageNaNs,
                                              xs_percentageNaNs, ys_percentageNaNs,
-                                             fps)
-    print(f">   Compute instant speed:")
-    print('>   Verify more than one camara used:')
+                                             fps, plot=False)
+    # Compute instant speed
+    print(f"*   Compute instant speed:")
+    print('        Verify more than one camara used:')
     if hasattr(single_experiment, 'cam_used'):
-        print(">   More than one camara used.")
-        NanRate, MeanSpeed = slmg_inst_speed(x3, y3, fps, single_experiment.cam_used)
+        print("           More than one camara used.")
+        x4, y4, y4_MeanSpeed,  y4_NanRate,  = slmg_inst_speed(x3, y3, fps, single_experiment.cam_used, plot=False)
     else:
-        print(">   Only one camara used.")
-        NanRate, MeanSpeed = slmg_inst_speed(x3, y3, fps, None)
+        print("           Only one camara used.")
+
+        x4, y4, y4_MeanSpeed, y4_NanRate, = slmg_inst_speed(x3, y3, fps, cam_used=None)
+
+    # Smoothing using median filter
+    y5, y5_NanRate = slmg_median_smooth_2(x4, y4, window_size, plot=False)
+    recap_results_2 = slmg_recap_preprocessing_2(y4, y5, y4_NanRate, y5_NanRate, fps)
+
+    # Recalibrate data
+    y6 = slmg_recalibrate_data(y5, fps, sync_time)
+
+
+    # Segmentation: high vs. low speed
+
+    # Statistics and Metrics
+
+
+
 
 # Multiple experiments to analyze listed in a csv file 
 elif single_experiment == 0:

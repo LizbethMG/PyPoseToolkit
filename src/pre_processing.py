@@ -2,7 +2,17 @@ import plotly.graph_objects as go
 from scipy.interpolate import interp1d
 from scipy.ndimage import gaussian_filter1d
 from scipy.interpolate import UnivariateSpline
+from scipy.signal import savgol_filter
+from scipy.signal import medfilt
+
 import numpy as np
+
+""" ---------- Pre-processing functions for handling separate datasets -------------------
+ These functions are useful for scenarios where you have two different sets of data,
+ such as the x and y pixel coordinates of tracked points  The functions aim to
+ clean, smooth, and analyze these coordinates to facilitate further processing
+ and visualization."""
+
 
 def slmg_remove_outliers(x, y, zscore_threshold, plot=True):
     """
@@ -26,15 +36,15 @@ def slmg_remove_outliers(x, y, zscore_threshold, plot=True):
     xanthous = '#FFBC42'
 
     # 1. Remove outliers from DeepLabCut data using Z-score method.
-    print(f"1       Removing outliers with {zscore_threshold:.2f} Z-score threshold for outlier detection:")
+    print(f"*       Removing outliers with {zscore_threshold:.2f} Z-score threshold for outlier detection:")
 
     # Calculate the percentage of NaN values relative to the total number of elements from the original data
     x_numNaNs = np.isnan(x).sum()  # Count the number of NaN values
     y_numNaNs = np.isnan(y).sum()
     x_totalElements = len(x)  # Calculate the total number of elements in the vector
     y_totalElements = len(y)
-    x_percentageNaNs = round((x_numNaNs / x_totalElements) * 100,2)  # Calculate the percentage of NaN values
-    y_percentageNaNs = round((y_numNaNs / y_totalElements) * 100,2)
+    x_percentageNaNs = round((x_numNaNs / x_totalElements) * 100, 2)  # Calculate the percentage of NaN values
+    y_percentageNaNs = round((y_numNaNs / y_totalElements) * 100, 2)
 
     # Calculate mean and standard deviation ignoring NaNs
     x_mean = np.nanmean(x)
@@ -63,8 +73,8 @@ def slmg_remove_outliers(x, y, zscore_threshold, plot=True):
     # Calculate the percentage of NaN values after removing outliers
     x_numNaNs2 = np.isnan(x_clean).sum()
     y_numNaNs2 = np.isnan(y_clean).sum()
-    x_percentageNaNs2 = round((x_numNaNs2 / x_totalElements) * 100,2)
-    y_percentageNaNs2 = round((y_numNaNs2 / y_totalElements) * 100,2)
+    x_percentageNaNs2 = round((x_numNaNs2 / x_totalElements) * 100, 2)
+    y_percentageNaNs2 = round((y_numNaNs2 / y_totalElements) * 100, 2)
 
     # Plot the original and cleaned data for comparison if plot flag is True
     if plot:
@@ -72,13 +82,15 @@ def slmg_remove_outliers(x, y, zscore_threshold, plot=True):
 
         fig = go.Figure()
 
-        fig.add_trace(go.Scatter(x=np.arange(len(x)), y=x, mode='lines', name='Original X', line=dict(color=midnight_green)))
+        fig.add_trace(
+            go.Scatter(x=np.arange(len(x)), y=x, mode='lines', name='Original X', line=dict(color=midnight_green)))
         fig.add_trace(go.Scatter(x=np.where(x_outliers)[0], y=x[x_outliers], mode='markers', name='Outliers X',
                                  marker=dict(color=raspberry)))
         fig.add_trace(go.Scatter(x=np.arange(len(x_clean)), y=x_clean, mode='lines', name='Cleaned X',
                                  line=dict(color=light_blue)))
 
-        fig.add_trace(go.Scatter(x=np.arange(len(y)), y=y, mode='lines', name='Original Y', line=dict(color=midnight_green)))
+        fig.add_trace(
+            go.Scatter(x=np.arange(len(y)), y=y, mode='lines', name='Original Y', line=dict(color=midnight_green)))
         fig.add_trace(go.Scatter(x=np.where(y_outliers)[0], y=y[y_outliers], mode='markers', name='Outliers Y',
                                  marker=dict(color=raspberry)))
         fig.add_trace(go.Scatter(x=np.arange(len(y_clean)), y=y_clean, mode='lines', name='Cleaned Y',
@@ -90,9 +102,12 @@ def slmg_remove_outliers(x, y, zscore_threshold, plot=True):
 
     print(f'        > Original number of NaN in x - {x_numNaNs} representing {x_percentageNaNs}% of the data')
     print(f'        > Original number of NaN in y - {y_numNaNs} representing {x_percentageNaNs}% of the data')
-    print(f'        > Numbers of outliers found : X coordinates - {x_totalOutliers} outliers, Y coordinates - {y_totalOutliers} outliers')
-    print(f'        > Numbers of NaN after removing outliers : In X {x_numNaNs2} representing {x_percentageNaNs2} % of the data')
-    print(f'        > Numbers of NaN after removing outliers : In Y {y_numNaNs2} representing {y_percentageNaNs2} % of the data')
+    print(
+        f'        > Numbers of outliers found : X coordinates - {x_totalOutliers} outliers, Y coordinates - {y_totalOutliers} outliers')
+    print(
+        f'        > Numbers of NaN after removing outliers : In X {x_numNaNs2} representing {x_percentageNaNs2} % of the data')
+    print(
+        f'        > Numbers of NaN after removing outliers : In Y {y_numNaNs2} representing {y_percentageNaNs2} % of the data')
 
     return x_clean, y_clean, {
         'x_percentageNaNs': x_percentageNaNs,
@@ -105,6 +120,7 @@ def slmg_remove_outliers(x, y, zscore_threshold, plot=True):
     # interpolate_missing_data()
     # apply_median_filter()
     # handle_large_gaps()
+
 
 def slmg_interpolate(x, y, threshold_gap, plot=True):
     # Function to mark NaN values and interpolate data while handling large gaps
@@ -131,33 +147,35 @@ def slmg_interpolate(x, y, threshold_gap, plot=True):
         return vector_interpolated, nan_idx
 
         # Function to plot the original and interpolated data
+
     def plot_data(x, y, x_interp, y_interp, x_nan_indices, y_nan_indices):
-            # Plot interpolated data
-            # Colors for plots:
-            light_blue = '#92DCE5'
-            raspberry = '#D81159'
-            quinacridone = '#8F2D56'
-            xanthous = '#FFBC42'
+        # Plot interpolated data
+        # Colors for plots:
+        light_blue = '#92DCE5'
+        raspberry = '#D81159'
+        quinacridone = '#8F2D56'
+        xanthous = '#FFBC42'
 
-            fig = go.Figure()
+        fig = go.Figure()
 
-            fig.add_trace(go.Scatter(x=np.arange(len(x_interp)), y=x_interp, mode='lines', name='Interpolated X',
-                                     line=dict(color=quinacridone)))
-            fig.add_trace(go.Scatter(x=np.arange(len(x)), y=x, mode='lines', name='Original X', line=dict(color=light_blue)))
-            fig.add_trace(go.Scatter(x=np.where(x_nan_indices)[0], y=np.zeros(np.sum(x_nan_indices)), mode='markers',
-                                     name='NaN Values X', marker=dict(color=raspberry, size=5)))
+        fig.add_trace(go.Scatter(x=np.arange(len(x_interp)), y=x_interp, mode='lines', name='Interpolated X',
+                                 line=dict(color=quinacridone)))
+        fig.add_trace(
+            go.Scatter(x=np.arange(len(x)), y=x, mode='lines', name='Original X', line=dict(color=light_blue)))
+        fig.add_trace(go.Scatter(x=np.where(x_nan_indices)[0], y=np.zeros(np.sum(x_nan_indices)), mode='markers',
+                                 name='NaN Values X', marker=dict(color=raspberry, size=5)))
 
-            fig.add_trace(go.Scatter(x=np.arange(len(y_interp)), y=y_interp, mode='lines', name='Interpolated Y',
-                                     line=dict(color=quinacridone)))
-            fig.add_trace(go.Scatter(x=np.arange(len(y)), y=y, mode='lines', name='Original Y', line=dict(color=xanthous)))
-            fig.add_trace(go.Scatter(x=np.where(y_nan_indices)[0], y=np.zeros(np.sum(y_nan_indices)), mode='markers',
-                                     name='NaN Values Y', marker=dict(color=raspberry, size=5)))
+        fig.add_trace(go.Scatter(x=np.arange(len(y_interp)), y=y_interp, mode='lines', name='Interpolated Y',
+                                 line=dict(color=quinacridone)))
+        fig.add_trace(go.Scatter(x=np.arange(len(y)), y=y, mode='lines', name='Original Y', line=dict(color=xanthous)))
+        fig.add_trace(go.Scatter(x=np.where(y_nan_indices)[0], y=np.zeros(np.sum(y_nan_indices)), mode='markers',
+                                 name='NaN Values Y', marker=dict(color=raspberry, size=5)))
 
-            fig.update_layout(title='Interpolated Time Series',
-                              xaxis_title='Index', yaxis_title='Value')
-            fig.show()
+        fig.update_layout(title='Interpolated Time Series',
+                          xaxis_title='Index', yaxis_title='Value')
+        fig.show()
 
-    print('2       Apply spline interpolation while handling large gaps.')
+    print('*       Apply spline interpolation while handling large gaps.')
     print(f'        > Make evident NAN values.')
     print(f'        > Apply interpolation to fill small gaps.')
 
@@ -183,7 +201,8 @@ def slmg_interpolate(x, y, threshold_gap, plot=True):
         'x_percentageNaNs': x_perc_nans,
         'y_percentageNaNs': y_perc_nans}
 
-def slmg_median_smooth(x,y, window_size, plot=True):
+
+def slmg_median_smooth(x, y, window_size, plot=True):
     """
         slmg_smooth - Smooth the x and y data using a median filter.
 
@@ -223,7 +242,7 @@ def slmg_median_smooth(x,y, window_size, plot=True):
 
         return data_smooth
 
-    print(f'3       Smooth the x and y data using a median filter with a windows size of {window_size}')
+    print(f'*       Smooth the x and y data using a median filter with a windows size of {window_size}')
 
     # Apply median filter while preserving NaN values and restore NaNs to their original positions after filtering.
     # Change variable names to use the original data arrays (x, y) instead of interpolated ones (x_interp, y_interp).
@@ -261,6 +280,7 @@ def slmg_median_smooth(x,y, window_size, plot=True):
         'x_percentageNaNs': x_perc_nans,
         'y_percentageNaNs': y_perc_nans}
 
+
 def slmg_gaussian_smooth(x, y, sigma, plot=True):
     """
     Apply Gaussian smoothing to the x and y coordinates while preserving NaN values.
@@ -274,7 +294,7 @@ def slmg_gaussian_smooth(x, y, sigma, plot=True):
     Returns:
         tuple: Smoothed x and y coordinates.
     """
-    print(f'3       Smooth the x and y data using a gaussian filter with a sigma value  of {sigma}')
+    print(f'*       Smooth the x and y data using a gaussian filter with a sigma value  of {sigma}')
     x_smooth = gaussian_filter1d(np.nan_to_num(x, nan=np.nan), sigma=sigma)
     y_smooth = gaussian_filter1d(np.nan_to_num(y, nan=np.nan), sigma=sigma)
 
@@ -291,9 +311,11 @@ def slmg_gaussian_smooth(x, y, sigma, plot=True):
 
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=np.arange(len(x)), y=x, mode='lines', name='Original X', line=dict(color=raspberry)))
-        fig.add_trace(go.Scatter(x=np.arange(len(x_smooth)), y=x_smooth, mode='lines', name='Smoothed X', line=dict(color=xanthous)))
+        fig.add_trace(go.Scatter(x=np.arange(len(x_smooth)), y=x_smooth, mode='lines', name='Smoothed X',
+                                 line=dict(color=xanthous)))
         fig.add_trace(go.Scatter(x=np.arange(len(y)), y=y, mode='lines', name='Original Y', line=dict(color=raspberry)))
-        fig.add_trace(go.Scatter(x=np.arange(len(y_smooth)), y=y_smooth, mode='lines', name='Smoothed Y', line=dict(color=xanthous)))
+        fig.add_trace(go.Scatter(x=np.arange(len(y_smooth)), y=y_smooth, mode='lines', name='Smoothed Y',
+                                 line=dict(color=xanthous)))
         fig.update_layout(title='Gaussian Smoothing', xaxis_title='Index', yaxis_title='Value')
         fig.show()
 
@@ -305,6 +327,7 @@ def slmg_gaussian_smooth(x, y, sigma, plot=True):
     return x_smooth, y_smooth, {
         'x_percentageNaNs': x_perc_nans,
         'y_percentageNaNs': y_perc_nans}
+
 
 def slmg_spline_smooth(x, y, s, plot=True):
     """
@@ -319,7 +342,7 @@ def slmg_spline_smooth(x, y, s, plot=True):
         Returns:
             tuple: Smoothed x and y coordinates along with percentage of NaNs in x and y.
         """
-    print(f'3       Smooth the x and y data using spline curves with a smoothing factor s of  {s}')
+    print(f'*       Smooth the x and y data using spline curves with a smoothing factor s of  {s}')
 
     # Identify valid (non-NaN) indices
     valid_indices = ~(np.isnan(x) | np.isnan(y))
@@ -367,10 +390,12 @@ def slmg_spline_smooth(x, y, s, plot=True):
         'x_percentageNaNs': x_perc_nans,
         'y_percentageNaNs': y_perc_nans}
 
+
 def slmg_recap_preprocessing(x, y, x_smooth, y_smooth, x_percentageNaNs, y_percentageNaNs, xs_percentageNaNs,
-                             ys_percentageNaNs, fps=25):
+                             ys_percentageNaNs, fps=25, plot=True):
     """
     slmg_recap_preprocessing - Recap the pre-processing steps, perform checks, analyze noise, and plot the results.
+    When x and Y have been modified (before speed calculation)
 
     Parameters:
         x (array): Original x coordinates.
@@ -439,23 +464,27 @@ def slmg_recap_preprocessing(x, y, x_smooth, y_smooth, x_percentageNaNs, y_perce
         'snr_improvement': snr_improvement
     }
 
+    if plot != True:
+        pass
     # Plot original vs pre-processed data
-    fig = go.Figure()
+    else:
+        fig = go.Figure()
 
-    fig.add_trace(go.Scatter(x=time_minutes, y=x, mode='lines', name='Original X', line=dict(color='#004E64')))
-    fig.add_trace(go.Scatter(x=time_minutes, y=x_smooth, mode='lines', name='Smoothed X', line=dict(color='#FFBC42')))
+        fig.add_trace(go.Scatter(x=time_minutes, y=x, mode='lines', name='Original X', line=dict(color='#004E64')))
+        fig.add_trace(go.Scatter(x=time_minutes, y=x_smooth, mode='lines', name='Smoothed X', line=dict(color='#FFBC42')))
 
-    fig.add_trace(go.Scatter(x=time_minutes, y=y, mode='lines', name='Original Y', line=dict(color='#004E64')))
-    fig.add_trace(go.Scatter(x=time_minutes, y=y_smooth, mode='lines', name='Smoothed Y', line=dict(color='#FFBC42')))
+        fig.add_trace(go.Scatter(x=time_minutes, y=y, mode='lines', name='Original Y', line=dict(color='#004E64')))
+        fig.add_trace(go.Scatter(x=time_minutes, y=y_smooth, mode='lines', name='Smoothed Y', line=dict(color='#FFBC42')))
 
-    fig.update_layout(title='Smoothed Time Series',
-                      xaxis_title='Time (minutes)', yaxis_title='Value',
-                      legend_title='Data Type')
-    fig.show()
+        fig.update_layout(title='Smoothed Time Series',
+                          xaxis_title='Time (minutes)', yaxis_title='Value',
+                          legend_title='Data Type')
+        fig.show()
 
     return pre_proc_results
 
-def slmg_inst_speed(x,y, fps, cam_used):
+
+def slmg_inst_speed(x, y, fps, cam_used, plot=True):
     """
         Computes the instantaneous speed and handles camera switches (if two camaras used)
 
@@ -484,7 +513,7 @@ def slmg_inst_speed(x,y, fps, cam_used):
         dx = x[frame] - x[frame - 1]  # x2 - x1
         dy = y[frame] - y[frame - 1]  # y2 - y1
         dt = (x[frame] - x[frame - 1]) / 1000  # dt in seconds
-        d = np.sqrt(dx**2 + dy**2)  # Euclidean distance
+        d = np.sqrt(dx ** 2 + dy ** 2)  # Euclidean distance
         spd[frame, 1] = d / time_per_frame_s  # Instantaneous velocity in pixels per second
 
         if cam_used is not None:  # cam switch exists
@@ -497,43 +526,245 @@ def slmg_inst_speed(x,y, fps, cam_used):
 
     # Identify NaN values
     nan_indices = np.isnan(y_wcam)
-    # Create plotly figure
-    fig = go.Figure()
 
-    # Add speed trace
-    fig.add_trace(go.Scatter(x=x_wcam, y=y_wcam, mode='lines', name='Instant Speed', line=dict(color='black', width = 1)))
-    # Add small gray dots for NaN values at y=0
-    fig.add_trace(go.Scatter(x=x_wcam[nan_indices], y=np.zeros(np.sum(nan_indices)), mode='markers',
-                             name='NaN Values', marker=dict(color='gold', size=3)))
+    if plot:
+        # Create plotly figure
+        fig = go.Figure()
 
-    if cam_used is not None:  # cam switch exists
-        # Add vertical lines for camera switches
-        for switch_time in tilt:
-            fig.add_vline(x=switch_time, line=dict(color='darksalmon'), annotation_text='Camera Switch')
-    # Customize layout
-    fig.update_layout(
-        title='Instant speed - raw data with camera switches and nan values',
-        xaxis_title='Time (s)',
-        yaxis_title='Pixels/s',
-        showlegend=True
-    )
+        # Add speed trace
+        fig.add_trace(go.Scatter(x=x_wcam, y=y_wcam, mode='lines', name='Instant Speed', line=dict(color='black', width=1)))
+        # Add small gray dots for NaN values at y=0
+        fig.add_trace(go.Scatter(x=x_wcam[nan_indices], y=np.zeros(np.sum(nan_indices)), mode='markers',
+                                 name='NaN Values', marker=dict(color='gold', size=3)))
 
-    # Show plot
-    fig.show()
+        if cam_used is not None:  # cam switch exists
+            # Add vertical lines for camera switches
+            for switch_time in tilt:
+                fig.add_vline(x=switch_time, line=dict(color='darksalmon'), annotation_text='Camera Switch')
+        # Customize layout
+        fig.update_layout(
+            title='Instant speed - raw data with camera switches and nan values',
+            xaxis_title='Time (s)',
+            yaxis_title='Pixels/s',
+            showlegend=True
+        )
+
+        # Show plot
+        fig.show()
 
     # Print NaN Rate and Mean Speed if required
-    nanRate = np.sum(np.isnan(y_wcam)) / nb_total_frame
-    meanSpeed = np.nanmean(y_wcam)
+    nanRate = round((np.isnan(y_wcam).sum() / y_wcam.size) * 100, 2)
+    meanSpeed = round(np.nanmean(y_wcam), 2)
 
-    print(f'NaN Rate: {nanRate}')
-    print(f'Mean Speed: {meanSpeed}')
+    print(f"        NaN Rate: {nanRate} %")
+    print(f"        Mean Speed: {meanSpeed} Pixels/s")
 
-    return nanRate, meanSpeed
-
-
+    return x_wcam, y_wcam, meanSpeed, nanRate
 
 
+""" ---------- Pre-processing functions to handle a single dataset -------------------
+These functions are designed for cases where the x-coordinate represents the time vector
+ and the y-coordinate represents the data values (e.g., speed). 
+"""
+
+def slmg_savgol_smooth(x, y, window_length=51, polyorder=3, plot=True):
+    """
+        Smoothing  Y using Savitzky-Golay filter
+        WARNING: can give negative values
+        Parameters:
+            x (array): x coordinates.
+            y (array): y coordinates.
+            window_size (int): Window size for the median filter.
+            plot (bool): Flag to plot the data.
+
+        Returns:
+            tuple: Smoothed x and y coordinates.
+        """
+    y_smooth = savgol_filter(y, window_length, polyorder)
+
+    if plot:
+        raspberry = '#D81159'
+        xanthous = '#FFBC42'
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=x, y=y, mode='lines', name='Original Y', line=dict(color=raspberry)))
+        fig.add_trace(go.Scatter(x=x, y=y_smooth, mode='lines', name='Smoothed Y',
+                                 line=dict(color=xanthous)))
+        fig.update_layout(title='Savitzky-Golay filter', xaxis_title='Index', yaxis_title='Value')
+        fig.show()
+
+    y_num_nans = np.isnan(y_smooth).sum()
+    y_perc_nans = round((y_num_nans / len(y_smooth)) * 100, 2)
+
+    return y_smooth, y_perc_nans
 
 
+def slmg_median_smooth_2(x, y, window_size, plot=True):
+    """
+        slmg_smooth - Smooth the  y data using a median filter.
+
+        Parameters:
+            x (array): time vector
+            y (array): y coordinates.
+            window_size (int): Window size for the median filter.
+            plot (bool): Flag to plot the data.
+
+        Returns:
+            tuple: Smoothed y coordinates.
+        """
+
+    def custom_medfilt(data, window_size):
+        """
+        Apply a median filter to the data while preserving NaN values.
+
+        Parameters:
+            data (array): Input data.
+            window_size (int): Window size for the median filter.
+
+        Returns:
+            array: Smoothed data with NaNs preserved.
+        """
+        half_window = window_size // 2
+        data_smooth = np.copy(data)
+
+        for i in range(len(data)):
+            if np.isnan(data[i]):
+                continue
+            start = max(0, i - half_window)
+            end = min(len(data), i + half_window + 1)
+            window_data = data[start:end]
+            window_data = window_data[~np.isnan(window_data)]
+            if len(window_data) > 0:
+                data_smooth[i] = np.median(window_data)
+
+        return data_smooth
+
+    print(f'*       Smooth they data using a median filter with a windows size of {window_size}')
+
+    # Apply median filter while preserving NaN values and restore NaNs to their original positions after filtering.
+    # Change variable names to use the original data arrays (x, y) instead of interpolated ones (x_interp, y_interp).
+
+    y_smooth = custom_medfilt(y, window_size)
+
+    # Plot the smoothed data if plot flag is True
+    if plot:
+        raspberry = '#D81159'
+        xanthous = '#FFBC42'
+
+        fig = go.Figure()
+
+        fig.add_trace(go.Scatter(x=x, y=y, mode='lines', name='Y',
+                                 line=dict(color=raspberry)))
+        fig.add_trace(go.Scatter(x=x, y=y_smooth, mode='lines', name='Smoothed Y',
+                                 line=dict(color=xanthous)))
+        fig.update_layout(title='Smoothed Time Series',
+                          xaxis_title='Index', yaxis_title='Value')
+        fig.show()
+
+    y_num_nans = np.isnan(y_smooth).sum()
+    y_perc_nans = round((y_num_nans / len(y_smooth)) * 100, 2)
+
+    return  y_smooth, y_perc_nans
 
 
+def slmg_recap_preprocessing_2(y, y_smooth, y_percentageNaNs, ys_percentageNaNs, fps=25):
+    """
+    slmg_recap_preprocessing - Recap the pre-processing steps, perform checks, analyze noise, and plot the results.
+    When x and Y have been modified (before speed calculation)
+
+    Parameters:
+        x (array): Original x coordinates.
+        y (array): Original y coordinates.
+        x_smooth (array): Smoothed x coordinates.
+        y_smooth (array): Smoothed y coordinates.
+        x_percentageNaNs (float): Percentage of NaN values in original x data.
+        y_percentageNaNs (float): Percentage of NaN values in original y data.
+        xs_percentageNaNs (float): Percentage of NaN values in smoothed x data.
+        ys_percentageNaNs (float): Percentage of NaN values in smoothed y data.
+        fps (int): Frames per second. Default is 25.
+
+    Returns:
+        dict: Summary of the pre-processing results.
+    """
+
+    # Level of noise before and after processing the original data
+    validIndices = ~np.isnan(y) & ~np.isnan(y_smooth)
+
+    # Calculate Mean Squared Error (MSE), ignoring NaN values
+    mse_value = np.mean((y[validIndices] - y_smooth[validIndices]) ** 2)
+
+    # Calculate the standard deviation of the noise, ignoring NaN values
+    noise_std_before = np.std(y[validIndices] - np.mean(y[validIndices]))
+    noise_std_after = np.std(y_smooth[validIndices] - np.mean(y_smooth[validIndices]))
+
+    # Calculate Signal-to-Noise Ratio (SNR) improvement
+    signal_power = np.mean(y[validIndices] ** 2)
+    snr_before = signal_power / noise_std_before ** 2
+    snr_after = signal_power / noise_std_after ** 2
+    snr_improvement = 10 * np.log10(snr_after / snr_before)
+
+    # Convert time to minutes
+    num_samples = len(y)
+    time_ms = np.arange(num_samples) * (1000 / fps)  # Each sample is (1000/fps) ms apart
+    time_minutes = time_ms / 60000
+
+    print('>   ______________________________')
+    print('>   Summary of the pre-processing done:')
+    print(f'        Recording duration: {time_minutes[-1]:.2f} minutes at {fps} frames/second')
+    print('         Original data:')
+    print(f'           Number of NaN values: {np.isnan(y).sum()}')
+    print(f'           Percentage of NaN values: {y_percentageNaNs:.2f}%')
+    print('         After pre-processing:')
+    print(f'           Number of NaN values: {np.isnan(y_smooth).sum()}')
+    print(f'           Percentage of NaN values: {ys_percentageNaNs:.2f}%')
+    print(f'           Mean Squared Error (MSE) before and after smoothing: {mse_value:.4f}')
+    print(f'           Standard deviation of noise before smoothing: {noise_std_before:.4f}')
+    print(f'           Standard deviation of noise after smoothing: {noise_std_after:.4f}')
+    print(f'           SNR improvement: {snr_improvement:.4f} dB')
+    print('>   ______________________________')
+
+    pre_proc_results = {
+        'recording_duration': time_minutes[-1],
+        'fps': fps,
+        'y_percentageNaNs': ys_percentageNaNs,
+        'snr_improvement': snr_improvement
+    }
+
+    return pre_proc_results
+
+
+def slmg_recalibrate_data(data, fps, sync_time):
+    """
+       Trims the data to start at the specified sync_time.
+
+       Parameters:
+       - data: np.ndarray with shape (n_samples,), representing the signal values.
+       - sync_time: The synchronization time in seconds.
+       - fps: Frames per second of the data.
+
+       Returns:
+       - np.ndarray with data starting from the sync_time.
+       """
+    # Convert sync_time to frame number
+    print(f"*   Recalibrates the timestamps in the data to start at the specified sync_time: ")
+    print(f'        The synchronization time in seconds: {sync_time}')
+
+    # Convert sync_time to frame number
+    sync_frame = int(sync_time * fps)
+
+    # Trim the data to start from the sync_frame
+    recalibrated_data = data[sync_frame:]
+
+    # Convert time to minutes
+    num_samples = len(data)
+    time_ms = np.arange(num_samples) * (1000 / fps)  # Each sample is (1000/fps) ms apart
+    time_minutes = time_ms / 60000
+
+    num_samples2 = len(recalibrated_data)
+    time_ms2 = np.arange(num_samples2) * (1000 / fps)  # Each sample is (1000/fps) ms apart
+    time_minutes2 = time_ms2 / 60000
+
+    print(f'        Original recording duration: {time_minutes[-1]:.2f} minutes')
+    print(f'        Original recording duration: {time_minutes2[-1]:.2f} minutes')
+
+    return recalibrated_data
