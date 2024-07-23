@@ -4,6 +4,7 @@ from scipy.ndimage import gaussian_filter1d
 from scipy.interpolate import UnivariateSpline
 from scipy.signal import savgol_filter
 from scipy.signal import medfilt
+import plotly.io as pio
 import warnings
 
 import numpy as np
@@ -485,6 +486,7 @@ def slmg_recap_preprocessing(x, y, x_smooth, y_smooth, x_percentageNaNs, y_perce
     return pre_proc_results
 
 
+
 def slmg_inst_speed(x, y, fps, cam_used, plot=True):
     """
         Computes the instantaneous speed and handles camera switches (if two camaras used)
@@ -825,3 +827,151 @@ def slmg_window_data(data, start_time=None, end_time=None, duration=None, fps=25
     print(f'        New recording duration: {time_minutes[-1]:.2f} minutes')
 
     return windowed_data
+
+
+def slmg_analyze_activity(data, fps, factor):
+    def slmg_analyze_activity(data, fps, factor):
+        """
+        Analyzes periods of high and low activity in the speed data.
+
+        Parameters:
+        data (np.ndarray): Numpy array containing instantaneous speed data (pixels per second) with NaN values for occlusion.
+        fps (int): Frames per second of the video.
+        factor (float): Multiple factor of the standard deviation to set the threshold for high activity.
+
+        Returns:
+        dict: Dictionary containing percentages of low, high, and occlusion periods.
+        """
+        # Type checks
+        if not isinstance(data, np.ndarray):
+            raise ValueError("Data should be a numpy array")
+        if not np.issubdtype(data.dtype, np.number):
+            raise ValueError("Data array should contain numeric values")
+        if not isinstance(fps, int):
+            raise ValueError("FPS should be an integer")
+        if not isinstance(factor, (int, float)):
+            raise ValueError("Factor should be a numeric value")
+
+        # Calculate the standard deviation ignoring NaN values
+        std_dev = np.nanstd(data)
+
+        # Determine the threshold for high activity
+        threshold = std_dev * factor
+
+        # Classify each period
+        high_activity = np.sum(data > threshold)
+        low_activity = np.sum((data <= threshold) & (~np.isnan(data)))
+        occlusion = np.sum(np.isnan(data))
+
+        total = len(data)
+
+        # Calculate percentages
+        high_percentage = (high_activity / total) * 100
+        low_percentage = (low_activity / total) * 100
+        occlusion_percentage = (occlusion / total) * 100
+
+        result = {
+            'high_activity': high_percentage,
+            'low_activity': low_percentage,
+            'occlusion': occlusion_percentage
+        }
+        # Convert frame indices to time in seconds
+        time = np.arange(total) / fps
+
+        # Separate into chunks
+        is_high = data > threshold
+        is_low = (data <= threshold) & (~np.isnan(data))
+
+        chunks = []
+        current_chunk = []
+        current_type = None
+
+        for i in range(total):
+            if np.isnan(data[i]):
+                if current_chunk:
+                    chunks.append((current_chunk, current_type))
+                    current_chunk = []
+                current_type = 'occlusion'
+                chunks.append(([i], current_type))
+            elif is_high[i]:
+                if current_type != 'high':
+                    if current_chunk:
+                        chunks.append((current_chunk, current_type))
+                    current_chunk = [i]
+                    current_type = 'high'
+                else:
+                    current_chunk.append(i)
+            elif is_low[i]:
+                if current_type != 'low':
+                    if current_chunk:
+                        chunks.append((current_chunk, current_type))
+                    current_chunk = [i]
+                    current_type = 'low'
+                else:
+                    current_chunk.append(i)
+
+        if current_chunk:
+            chunks.append((current_chunk, current_type))
+
+            # Plot the data
+        fig = go.Figure()
+
+        # Add the chunks to the plot
+        for chunk, chunk_type in chunks:
+            x = time[chunk]
+            y = data[chunk]
+            if chunk_type == 'high':
+                fig.add_trace(go.Scatter(
+                    x=x, y=y,
+                    mode='lines',
+                    name='High Activity',
+                    line=dict(color='#8338EC'),
+                    showlegend=False,
+                    hoverinfo='x+y',
+                    fill='tozeroy'
+                ))
+            elif chunk_type == 'low':
+                fig.add_trace(go.Scatter(
+                    x=x, y=y,
+                    mode='lines',
+                    name='Low Activity',
+                    line=dict(color='#FFBE0B'),
+                    showlegend=False,
+                    hoverinfo='x+y',
+                    fill='tozeroy'
+                ))
+            elif chunk_type == 'occlusion':
+                fig.add_trace(go.Scatter(
+                    x=x, y=[0] * len(x),
+                    mode='markers',
+                    name='Occlusion',
+                    marker=dict(color='#3A86FF', size=5),
+                    showlegend=False,
+                    hoverinfo='x+y'
+                ))
+
+        # Add threshold line
+        fig.add_trace(go.Scatter(
+            x=[time[0], time[-1]], y=[threshold, threshold],
+            mode='lines',
+            name='Threshold',
+            line=dict(color='#FB5607', dash='dash'),
+            showlegend=False,
+            hoverinfo='none'
+        ))
+
+        # Update layout
+        fig.update_layout(
+            title='Periods of high and low activity',
+            xaxis_title='Time (seconds)',
+            yaxis_title='Speed (pixels per second)',
+            showlegend=False,  # Hide the legend
+            plot_bgcolor='rgba(0,0,0,0)',  # Transparent plot background
+            paper_bgcolor='rgba(0,0,0,0)'  # Transparent paper background
+        )
+
+        # Set the renderer to browser and explicitly show the plot
+        pio.renderers.default = 'browser'
+        fig.show()
+
+        return result

@@ -76,6 +76,7 @@ if single_experiment == 1:
     duration = 600  # in s for trimming the data (10 min = 10 x 60 s)
     start_time = 60  # in is for trimming the data (1 min = 1 x 60)
     end_time = 660 # in is for trimming the data (11 min = 1 x 60)
+    factor = 1  # Multiple factor of the std to set the threshold for high activity.
     # ----------- -------------------------------------
 
     print('Single experiment selected:')
@@ -125,10 +126,10 @@ if single_experiment == 1:
     y6 = slmg_recalibrate_data(y5, fps, sync_time)
 
     # Trims data
-    y7 = slmg_window_data(y6, start_time=start_time, end_time=end_time, duration=None, fps=fps)
+    y7 = slmg_window_data(y6, start_time=None, end_time=None, duration=duration, fps=fps)
 
     # Segmentation: high vs. low speed
-
+    y8 = slmg_analyze_activity(y7, fps, factor)
     # Statistics and Metrics
 
 
