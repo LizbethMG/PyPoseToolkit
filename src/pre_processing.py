@@ -5,8 +5,9 @@ from scipy.interpolate import UnivariateSpline
 from scipy.signal import savgol_filter
 from scipy.signal import medfilt
 import plotly.io as pio
-import warnings
 
+pio.renderers.default = 'iframe'
+import warnings
 import numpy as np
 
 """ ---------- Pre-processing functions for handling separate datasets -------------------
@@ -394,7 +395,7 @@ def slmg_spline_smooth(x, y, s, plot=True):
 
 
 def slmg_recap_preprocessing(x, y, x_smooth, y_smooth, x_percentageNaNs, y_percentageNaNs, xs_percentageNaNs,
-                             ys_percentageNaNs, fps=25, plot=True):
+                             ys_percentageNaNs, fps=25, plot=True, summary=False):
     """
     slmg_recap_preprocessing - Recap the pre-processing steps, perform checks, analyze noise, and plot the results.
     When x and Y have been modified (before speed calculation)
@@ -443,20 +444,21 @@ def slmg_recap_preprocessing(x, y, x_smooth, y_smooth, x_percentageNaNs, y_perce
     time_ms = np.arange(num_samples) * (1000 / fps)  # Each sample is (1000/fps) ms apart
     time_minutes = time_ms / 60000
 
-    print('>   ______________________________')
-    print('>   Summary of the pre-processing done:')
-    print(f'        Recording duration: {time_minutes[-1]:.2f} minutes at {fps} frames/second')
-    print('         Original data:')
-    print(f'           Number of NaN values: {np.isnan(x).sum()}')
-    print(f'           Percentage of NaN values: {x_percentageNaNs:.2f}%')
-    print('         After pre-processing:')
-    print(f'           Number of NaN values: {np.isnan(x_smooth).sum()}')
-    print(f'           Percentage of NaN values: {xs_percentageNaNs:.2f}%')
-    print(f'           Mean Squared Error (MSE) before and after smoothing: {mse_value:.4f}')
-    print(f'           Standard deviation of noise before smoothing: {noise_std_before:.4f}')
-    print(f'           Standard deviation of noise after smoothing: {noise_std_after:.4f}')
-    print(f'           SNR improvement: {snr_improvement:.4f} dB')
-    print('>   ______________________________')
+    if summary == True:
+        print('>   ______________________________')
+        print('>   Summary of the pre-processing done:')
+        print(f'        Recording duration: {time_minutes[-1]:.2f} minutes at {fps} frames/second')
+        print('         Original data:')
+        print(f'           Number of NaN values: {np.isnan(x).sum()}')
+        print(f'           Percentage of NaN values: {x_percentageNaNs:.2f}%')
+        print('         After pre-processing:')
+        print(f'           Number of NaN values: {np.isnan(x_smooth).sum()}')
+        print(f'           Percentage of NaN values: {xs_percentageNaNs:.2f}%')
+        print(f'           Mean Squared Error (MSE) before and after smoothing: {mse_value:.4f}')
+        print(f'           Standard deviation of noise before smoothing: {noise_std_before:.4f}')
+        print(f'           Standard deviation of noise after smoothing: {noise_std_after:.4f}')
+        print(f'           SNR improvement: {snr_improvement:.4f} dB')
+        print('>   ______________________________')
 
     pre_proc_results = {
         'recording_duration': time_minutes[-1],
@@ -473,10 +475,12 @@ def slmg_recap_preprocessing(x, y, x_smooth, y_smooth, x_percentageNaNs, y_perce
         fig = go.Figure()
 
         fig.add_trace(go.Scatter(x=time_minutes, y=x, mode='lines', name='Original X', line=dict(color='#004E64')))
-        fig.add_trace(go.Scatter(x=time_minutes, y=x_smooth, mode='lines', name='Smoothed X', line=dict(color='#FFBC42')))
+        fig.add_trace(
+            go.Scatter(x=time_minutes, y=x_smooth, mode='lines', name='Smoothed X', line=dict(color='#FFBC42')))
 
         fig.add_trace(go.Scatter(x=time_minutes, y=y, mode='lines', name='Original Y', line=dict(color='#004E64')))
-        fig.add_trace(go.Scatter(x=time_minutes, y=y_smooth, mode='lines', name='Smoothed Y', line=dict(color='#FFBC42')))
+        fig.add_trace(
+            go.Scatter(x=time_minutes, y=y_smooth, mode='lines', name='Smoothed Y', line=dict(color='#FFBC42')))
 
         fig.update_layout(title='Smoothed Time Series',
                           xaxis_title='Time (minutes)', yaxis_title='Value',
@@ -484,7 +488,6 @@ def slmg_recap_preprocessing(x, y, x_smooth, y_smooth, x_percentageNaNs, y_perce
         fig.show()
 
     return pre_proc_results
-
 
 
 def slmg_inst_speed(x, y, fps, cam_used, plot=True):
@@ -535,7 +538,8 @@ def slmg_inst_speed(x, y, fps, cam_used, plot=True):
         fig = go.Figure()
 
         # Add speed trace
-        fig.add_trace(go.Scatter(x=x_wcam, y=y_wcam, mode='lines', name='Instant Speed', line=dict(color='black', width=1)))
+        fig.add_trace(
+            go.Scatter(x=x_wcam, y=y_wcam, mode='lines', name='Instant Speed', line=dict(color='black', width=1)))
         # Add small gray dots for NaN values at y=0
         fig.add_trace(go.Scatter(x=x_wcam[nan_indices], y=np.zeros(np.sum(nan_indices)), mode='markers',
                                  name='NaN Values', marker=dict(color='gold', size=3)))
@@ -569,6 +573,7 @@ def slmg_inst_speed(x, y, fps, cam_used, plot=True):
 These functions are designed for cases where the x-coordinate represents the time vector
  and the y-coordinate represents the data values (e.g., speed). 
 """
+
 
 def slmg_savgol_smooth(x, y, window_length=51, polyorder=3, plot=True):
     """
@@ -667,7 +672,7 @@ def slmg_median_smooth_2(x, y, window_size, plot=True):
     y_num_nans = np.isnan(y_smooth).sum()
     y_perc_nans = round((y_num_nans / len(y_smooth)) * 100, 2)
 
-    return  y_smooth, y_perc_nans
+    return y_smooth, y_perc_nans
 
 
 def slmg_recap_preprocessing_2(y, y_smooth, y_percentageNaNs, ys_percentageNaNs, fps=25):
@@ -829,9 +834,8 @@ def slmg_window_data(data, start_time=None, end_time=None, duration=None, fps=25
     return windowed_data
 
 
-def slmg_analyze_activity(data, fps, factor):
-    def slmg_analyze_activity(data, fps, factor):
-        """
+def slmg_analyze_activity(data, fps, threshold_method, experiment):
+    """
         Analyzes periods of high and low activity in the speed data.
 
         Parameters:
@@ -842,136 +846,171 @@ def slmg_analyze_activity(data, fps, factor):
         Returns:
         dict: Dictionary containing percentages of low, high, and occlusion periods.
         """
-        # Type checks
-        if not isinstance(data, np.ndarray):
-            raise ValueError("Data should be a numpy array")
-        if not np.issubdtype(data.dtype, np.number):
-            raise ValueError("Data array should contain numeric values")
-        if not isinstance(fps, int):
-            raise ValueError("FPS should be an integer")
-        if not isinstance(factor, (int, float)):
-            raise ValueError("Factor should be a numeric value")
+    # Type checks
+    if not isinstance(data, np.ndarray):
+        raise ValueError("Data should be a numpy array")
+    if not np.issubdtype(data.dtype, np.number):
+        raise ValueError("Data array should contain numeric values")
+    if not isinstance(fps, int):
+        raise ValueError("FPS should be an integer")
 
+    print(f"*   Segment data in low vs. high activity according to the chosen method. ")
+
+    if threshold_method == 1:
+        factor = 1
+        t_method = 'Mean + STD'
+        print(f'        Theshold method: Mean + STD ')
+        # Calculate the mean ignoring NaN values
+        mean = np.nanmean(data)
         # Calculate the standard deviation ignoring NaN values
         std_dev = np.nanstd(data)
-
         # Determine the threshold for high activity
-        threshold = std_dev * factor
+        threshold = mean + (std_dev * factor)
+    elif threshold_method == 2:  # Percentile-Based Threshold:
+        t_method = 'Percentile-Based Threshold'
+        print(f'        Theshold method: Percentile-Based Threshold ')
+        # Define the percentile threshold (e.g., 75th percentile)
+        percentile = 75
+        # Calculate the threshold ignoring NaN values
+        threshold = np.nanpercentile(data, percentile)
+    elif threshold_method == 3:  # Median and Median Absolute Deviation (MAD):
+        t_method = 'Median and Median Absolute Deviation (MAD)'
+        print(f'        Theshold method: Median and Median Absolute Deviation (MAD) ')
+        # Calculate the median ignoring NaN values
+        median = np.nanmedian(data)
+        # Calculate the Median Absolute Deviation (MAD) ignoring NaN values
+        mad = np.nanmedian(np.abs(data - median))
+        # Define the factor (e.g., 1.5 times the MAD)
+        factor = 1.5
+        # Determine the threshold for high activity
+        threshold = median + (mad * factor)
 
-        # Classify each period
-        high_activity = np.sum(data > threshold)
-        low_activity = np.sum((data <= threshold) & (~np.isnan(data)))
-        occlusion = np.sum(np.isnan(data))
+    # Classify each period
+    high_activity = np.sum(data > threshold)
+    low_activity = np.sum((data <= threshold) & (~np.isnan(data)))
+    occlusion = np.sum(np.isnan(data))
 
-        total = len(data)
+    total = len(data)
 
-        # Calculate percentages
-        high_percentage = (high_activity / total) * 100
-        low_percentage = (low_activity / total) * 100
-        occlusion_percentage = (occlusion / total) * 100
+    # Calculate percentages
+    high_percentage = round((high_activity / total) * 100, 2)
+    low_percentage = round((low_activity / total) * 100, 2)
+    occlusion_percentage = round((occlusion / total) * 100, 2)
 
-        result = {
-            'high_activity': high_percentage,
-            'low_activity': low_percentage,
-            'occlusion': occlusion_percentage
-        }
-        # Convert frame indices to time in seconds
-        time = np.arange(total) / fps
+    result = {
+        'high_activity': high_percentage,
+        'low_activity': low_percentage,
+        'occlusion': occlusion_percentage
+    }
+    # Convert frame indices to time in seconds
+    time = np.arange(total) / fps
 
-        # Separate into chunks
-        is_high = data > threshold
-        is_low = (data <= threshold) & (~np.isnan(data))
+    # Separate into chunks
+    is_high = data > threshold
+    is_low = (data <= threshold) & (~np.isnan(data))
 
-        chunks = []
-        current_chunk = []
-        current_type = None
+    chunks = []
+    current_chunk = []
+    current_type = None
 
-        for i in range(total):
-            if np.isnan(data[i]):
+    for i in range(total):
+        if np.isnan(data[i]):
+            if current_chunk:
+                chunks.append((current_chunk, current_type))
+                current_chunk = []
+            current_type = 'occlusion'
+            chunks.append(([i], current_type))
+        elif is_high[i]:
+            if current_type != 'high':
                 if current_chunk:
                     chunks.append((current_chunk, current_type))
-                    current_chunk = []
-                current_type = 'occlusion'
-                chunks.append(([i], current_type))
-            elif is_high[i]:
-                if current_type != 'high':
-                    if current_chunk:
-                        chunks.append((current_chunk, current_type))
-                    current_chunk = [i]
-                    current_type = 'high'
-                else:
-                    current_chunk.append(i)
-            elif is_low[i]:
-                if current_type != 'low':
-                    if current_chunk:
-                        chunks.append((current_chunk, current_type))
-                    current_chunk = [i]
-                    current_type = 'low'
-                else:
-                    current_chunk.append(i)
+                current_chunk = [i]
+                current_type = 'high'
+            else:
+                current_chunk.append(i)
+        elif is_low[i]:
+            if current_type != 'low':
+                if current_chunk:
+                    chunks.append((current_chunk, current_type))
+                current_chunk = [i]
+                current_type = 'low'
+            else:
+                current_chunk.append(i)
 
-        if current_chunk:
-            chunks.append((current_chunk, current_type))
+    if current_chunk:
+        chunks.append((current_chunk, current_type))
 
-            # Plot the data
-        fig = go.Figure()
+        # Plot the data
+    fig = go.Figure()
 
-        # Add the chunks to the plot
-        for chunk, chunk_type in chunks:
-            x = time[chunk]
-            y = data[chunk]
-            if chunk_type == 'high':
-                fig.add_trace(go.Scatter(
-                    x=x, y=y,
-                    mode='lines',
-                    name='High Activity',
-                    line=dict(color='#8338EC'),
-                    showlegend=False,
-                    hoverinfo='x+y',
-                    fill='tozeroy'
-                ))
-            elif chunk_type == 'low':
-                fig.add_trace(go.Scatter(
-                    x=x, y=y,
-                    mode='lines',
-                    name='Low Activity',
-                    line=dict(color='#FFBE0B'),
-                    showlegend=False,
-                    hoverinfo='x+y',
-                    fill='tozeroy'
-                ))
-            elif chunk_type == 'occlusion':
-                fig.add_trace(go.Scatter(
-                    x=x, y=[0] * len(x),
-                    mode='markers',
-                    name='Occlusion',
-                    marker=dict(color='#3A86FF', size=5),
-                    showlegend=False,
-                    hoverinfo='x+y'
-                ))
+    # Add the chunks to the plot
+    for chunk, chunk_type in chunks:
+        x = time[chunk]
+        y = data[chunk]
+        if chunk_type == 'high':
+            fig.add_trace(go.Scatter(
+                x=x, y=y,
+                mode='lines',
+                name='High Activity',
+                line=dict(color='#8338EC'),
+                showlegend=False,
+                hoverinfo='x+y',
+                fill='tozeroy'
+            ))
+        elif chunk_type == 'low':
+            fig.add_trace(go.Scatter(
+                x=x, y=y,
+                mode='lines',
+                name='Low Activity',
+                line=dict(color='#FFBE0B'),
+                showlegend=False,
+                hoverinfo='x+y',
+                fill='tozeroy'
+            ))
+        elif chunk_type == 'occlusion':
+            fig.add_trace(go.Scatter(
+                x=x, y=[0] * len(x),
+                mode='markers',
+                name='Occlusion',
+                marker=dict(color='#3A86FF', size=5),
+                showlegend=False,
+                hoverinfo='x+y'
+            ))
 
-        # Add threshold line
-        fig.add_trace(go.Scatter(
-            x=[time[0], time[-1]], y=[threshold, threshold],
-            mode='lines',
-            name='Threshold',
-            line=dict(color='#FB5607', dash='dash'),
-            showlegend=False,
-            hoverinfo='none'
-        ))
+    # Add threshold line
+    fig.add_trace(go.Scatter(
+        x=[time[0], time[-1]], y=[threshold, threshold],
+        mode='lines',
+        name='Threshold',
+        line=dict(color='#FB5607', dash='dash'),
+        showlegend=False,
+        hoverinfo='none'
+    ))
 
-        # Update layout
-        fig.update_layout(
-            title='Periods of high and low activity',
-            xaxis_title='Time (seconds)',
-            yaxis_title='Speed (pixels per second)',
-            showlegend=False,  # Hide the legend
-            plot_bgcolor='rgba(0,0,0,0)',  # Transparent plot background
-            paper_bgcolor='rgba(0,0,0,0)'  # Transparent paper background
-        )
+    # Update layout
+    fig.update_layout(
+        title=dict(
+            text=f'Periods of high and low activity - Threshold method used: {t_method}<br>'
+                 f'Animal ID {experiment.animal}, compound {experiment.compound}, dose {experiment.dose} mg/kg,'
+                 f' timepoint {experiment.timepoint} h post injection ',
+            x=0.5,  # Center the title
+            xanchor='center'
+        ),
+        xaxis_title='Time (seconds)',
+        yaxis_title='Speed (pixels per second)',
+        xaxis=dict(showline=True, linecolor='black', linewidth=1),
+        yaxis=dict(showline=True, linecolor='black', linewidth=1),
+        showlegend=False,  # Hide the legend
+        plot_bgcolor='rgba(0,0,0,0)',  # Transparent plot background
+        paper_bgcolor='rgba(0,0,0,0)'  # Transparent paper background
+    )
 
-        # Set the renderer to browser and explicitly show the plot
-        pio.renderers.default = 'browser'
-        fig.show()
+    # Set the renderer to browser and explicitly show the plot
+    pio.renderers.default = 'browser'
+    fig.show()
 
-        return result
+    print(f'        Results: ')
+    print(f'            High activity %: {high_percentage} ')
+    print(f'            Low activity %: {low_percentage} ')
+    print(f'            Occlusion activity %: {occlusion_percentage} ')
+    return result

@@ -49,16 +49,16 @@ class Experiment:
         if excel_file:
             # If there are any .xlsx files, take the first one
             file_path = excel_file[0]
-            print(f">   Found Excel file containg the data points for experiment:")
+            print(f"   Found Excel file containg the data points for experiment:")
             print(
-                f">   Animal ID {self.animal}, compound {self.compound}, dose {self.dose} mg/kg, timepoint {self.timepoint} h post injection")
+                f"   Animal ID {self.animal}, compound {self.compound}, dose {self.dose} mg/kg, timepoint {self.timepoint} h post injection")
             try:
                 # Read the specified sheet from the Excel file
                 self.point_positions = pd.read_excel(file_path, sheet_name='Coord_centroid')
                 self.bodypart_positions = pd.read_excel(file_path, sheet_name='Coord_bodyparts')
                 video_min = self.bodypart_positions['Frames_ms'].iloc[-1] / (60 * 1000)  # Video duration in minutes
                 nb_frames = self.bodypart_positions['Frames_ms'].shape[0]
-                print(f">       Video duration {video_min} min, with {nb_frames} frames")
+                print(f"       Video duration {video_min} min, with {nb_frames} frames")
 
                 # --- When there are more than 1 camera, load the camera id information ---
                 sheet_name = 'Coord_bodyparts'
@@ -101,11 +101,11 @@ class Experiment:
                     # Verify the number of rows are now the same
                     assert self.point_positions_extended.shape[0] == self.bodypart_positions.shape[
                         0], "The number of rows in point_positions still does not match bodypart_positions"
-                    print(f">       Modified point_positions DataFrame with new rows added")
+                    print(f"       Modified point_positions DataFrame with new rows added")
                 else:
                     self.point_positions_extended = self.points_positions
                     print(
-                        f">       The point_positions DataFrame is already longer or equal in rows compared to "
+                        f"       The point_positions DataFrame is already longer or equal in rows compared to "
                         f"bodpart_positions.")
             except Exception as e:
                 print(f" X: An error occurred while reading the Excel file: {e}")
