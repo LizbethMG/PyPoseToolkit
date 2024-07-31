@@ -16,6 +16,7 @@ Classification: Categorizes the animal's activity as low, high, or NA (based on 
 the percentage time spent in each category. # .\.venv\Scripts\activate """
 from experiment import Experiment
 from pre_processing import *
+from results_manager import *
 import sys
 import os
 import pandas as pd
@@ -24,10 +25,31 @@ import pandas as pd
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'src')))
 
 # --------------------------------------
+# ----------> To define by user <--------
 # Initialize variables and flags
 # --------------------------------------
+single_experiment = False  # 0 for all experiments found in the csv file, 1 for specific experiment
 isElectrophySyncEnabled = 0  # 1 when sync with electrophysiology is necessary
-single_experiment = 1  # 0 for all experiments found in the csv file, 1 for specific experiment
+
+
+fps = 25  # Video frames per seconds
+zscore_threshold = 4  # for outlier removal
+gap_threshold = 25  # for interpolation
+window_size = 30  # for median filter smoothing
+sigma = 2  # for Gaussian smoothing
+s = 100  # for Spline smoothing
+window_length = 30  # for Savitzky-Golay filter
+polyorder = 3  # for Savitzky-Golay filter
+sync_time = 60  # Sync signal in s (For example LED in video on)
+window = { # Used to trim the data, define duration or start & end time otherwise 'None'
+    "duration": 600,  # in s for trimming the data (10 min = 10 x 60 s)
+    "start_time": None,  # in s for trimming the data (1 min = 1 x 60)
+    "end_time":  None,  # in s for trimming the data (11 min = 11 x 60)
+    "fps": 25,
+}
+
+threshold_method = 3  # 3-MAD method
+
 # Colors
 yellow = '#EDB120'
 orange = "#D95319"
@@ -35,9 +57,12 @@ purple = "#7E2F8E"
 green = "#77AC30"
 light_blue = "#4DBEEE"
 
-# If multiple experiments: replace with the path to the CSV file containing the path to each experiment to analyze
+
+# Replace with the path to the CSV file containing the path to each experiment to analyze
 csvFilePath = '//l2export/iss02.nerb/nerb-md/decimotiv/Decimotiv_Recording/DREADD_Project/1_PoseAnalysis' \
-              '/Experiments_DLC.csv '
+              '/Experiments_DLC-followup.csv '
+results_path = 'D:/OneDrive - ICM/Liz_NeuroMatlab/DLC_PoseAnalysis/Results'
+results_filename = "results.csv"
 
 # --------------------------------------
 # Load experiments 
@@ -61,26 +86,11 @@ print('Done!')
 # For the moment this scripts parts from the fact that centroid calculation was done elsewhere
 # and saved in a csv file
 
-# ----------> To define by user <-------------------
-fps = 25  # Video frames per seconds
-zscore_threshold = 4  # for outlier removal
-gap_threshold = 25  # for interpolation
-window_size = 30  # for median filter smoothing
-sigma = 2  # for Gaussian smoothing
-s = 100  # for Spline smoothing
-window_length = 30  # for Savitzky-Golay filter
-polyorder = 3  # for Savitzky-Golay filter
-sync_time = 60  # Sync signal in s (For example LED in video on)
-duration = 600  # in s for trimming the data (10 min = 10 x 60 s)
-start_time = 60  # in is for trimming the data (1 min = 1 x 60)
-end_time = 660  # in is for trimming the data (11 min = 1 x 60)
-threshold_method = 3  # 3-MAD method
-
 # --------------------------------------
 # Single experiment
 # --------------------------------------
-if single_experiment == 1:
-    single_experiment = Experiment(
+if single_experiment:
+    current_experiment = Experiment(
         animal=755,
         compound="21",
         dose="1",  # mg/kg
@@ -90,8 +100,8 @@ if single_experiment == 1:
 
     print('Single experiment selected:')
     print(f">   Pre-processing:")
-    x = single_experiment.point_positions_extended['x_centroid']
-    y = single_experiment.point_positions_extended['y_centroid']
+    x = current_experiment.point_positions_extended['x_centroid']
+    y = current_experiment.point_positions_extended['y_centroid']
 
     x1, y1, outlier_stats = slmg_remove_outliers(x, y, zscore_threshold, plot=False)
     x2, y2, interpol_stats = slmg_interpolate(x1, y1, gap_threshold, plot=False)
@@ -112,31 +122,30 @@ if single_experiment == 1:
     # Compute instant speed
     print(f">   Compute instant speed:")
     print('        Verify more than one camara used:')
-    if hasattr(single_experiment, 'cam_used'):
+    if hasattr(current_experiment, 'cam_used'):
         print("           More than one camara used.")
-        x4, y4, y4_MeanSpeed,  y4_NanRate,  = slmg_inst_speed(x3, y3, fps, single_experiment.cam_used, plot=False)
+        x4, y4, y4_MeanSpeed, y4_NanRate, = slmg_inst_speed(x3, y3, fps, current_experiment.cam_used, plot=False)
     else:
         print("           Only one camara used.")
         x4, y4, y4_MeanSpeed, y4_NanRate, = slmg_inst_speed(x3, y3, fps, cam_used=None)
-
     # Smoothing using median filter
     y5, y5_NanRate = slmg_median_smooth_2(x4, y4, window_size, plot=False)
     recap_results_2 = slmg_recap_preprocessing_2(y4, y5, y4_NanRate, y5_NanRate, fps)
-
     # Recalibrate data
     y6 = slmg_recalibrate_data(y5, fps, sync_time)
-
     # Trims data
     y7 = slmg_window_data(y6, start_time=None, end_time=None, duration=duration, fps=fps)
-
     # Segmentation: high vs. low speed
-    y8 = slmg_analyze_activity(y7, fps,  threshold_method, single_experiment)
+    y8 = slmg_analyze_activity(y7, fps, threshold_method, current_experiment)
 
     # Statistics and Metrics
 # --------------------------------------
 # Multiple experiments to analyze listed in a csv file
 # --------------------------------------
-elif single_experiment == 0:
+elif not single_experiment:
+    # Check if the experiment results file already exist if nt it creates it
+    slmg_results_file_exist(results_path, results_filename)
+
     for i in path_list.index:
         print(f" Multiple experiment selected {i + 1} / {path_list.size}: ")
         path_to_experiment = path_list[i]
@@ -149,16 +158,17 @@ elif single_experiment == 0:
                 timepoint=experiments_table.iloc[i, 3],  # hours
                 experiments_table=experiments_table,
             )
+        else:
+            print(f"The file {path_to_experiment} does not exists")
+            exit(1)
 
         print(f">   Pre-processing:")
-        x = single_experiment.point_positions_extended['x_centroid']
-        y = single_experiment.point_positions_extended['y_centroid']
+        x = current_experiment.point_positions_extended['x_centroid']
+        y = current_experiment.point_positions_extended['y_centroid']
 
         x1, y1, outlier_stats = slmg_remove_outliers(x, y, zscore_threshold, plot=False)
         x2, y2, interpol_stats = slmg_interpolate(x1, y1, gap_threshold, plot=False)
         x3, y3, smooth_stats = slmg_gaussian_smooth(x2, y2, sigma, plot=False)
-        # x3, y3, smooth_stats = slmg_spline_smooth(x2, y2, s)
-        # x3, y3, smooth_stats = slmg_median_smooth(x2, y2, window_size, plot=False)
 
         # Pass the required stats for the recap function
         x_percentageNaNs = outlier_stats['x_percentageNaNs']
@@ -173,9 +183,9 @@ elif single_experiment == 0:
         # Compute instant speed
         print(f">   Compute instant speed:")
         print('        Verify more than one camara used:')
-        if hasattr(single_experiment, 'cam_used'):
+        if hasattr(current_experiment, 'cam_used'):
             print("           More than one camara used.")
-            x4, y4, y4_MeanSpeed, y4_NanRate, = slmg_inst_speed(x3, y3, fps, single_experiment.cam_used, plot=False)
+            x4, y4, y4_MeanSpeed, y4_NanRate, = slmg_inst_speed(x3, y3, fps, current_experiment.cam_used, plot=False)
         else:
             print("           Only one camara used.")
             x4, y4, y4_MeanSpeed, y4_NanRate, = slmg_inst_speed(x3, y3, fps, cam_used=None)
@@ -183,21 +193,18 @@ elif single_experiment == 0:
         # Smoothing using median filter
         y5, y5_NanRate = slmg_median_smooth_2(x4, y4, window_size, plot=False)
         recap_results_2 = slmg_recap_preprocessing_2(y4, y5, y4_NanRate, y5_NanRate, fps)
-
         # Recalibrate data
         y6 = slmg_recalibrate_data(y5, fps, sync_time)
-
         # Trims data
-        y7 = slmg_window_data(y6, start_time=None, end_time=None, duration=duration, fps=fps)
-
+        y7 = slmg_window_data(y6, window["start_time"], window["end_time"], window["duration"], window["fps"])
         # Segmentation: high vs. low speed
-        y8 = slmg_analyze_activity(y7, fps, threshold_method, single_experiment)
+        result = slmg_analyze_activity(y7, fps, threshold_method, current_experiment)
+        # Append new results to the results CSV file
+        slmg_append_results(results_path, results_filename, current_experiment, sync_time,
+                            window, threshold_method, result)
 
-
-        else:
-            print(f"The file {path_to_experiment} does not exists")
-            exit(1)
 else:
     print(f"Error selecting experiment to analyze")
+
 print('done!')
 print(r'\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\')
