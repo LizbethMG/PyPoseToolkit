@@ -60,28 +60,29 @@ light_blue = "#4DBEEE"
 
 # Replace with the path to the CSV file containing the path to each experiment to analyze
 csvFilePath = '//l2export/iss02.nerb/nerb-md/decimotiv/Decimotiv_Recording/DREADD_Project/1_PoseAnalysis' \
-              '/Experiments_DLC-followup.csv '
+              '/Experiments_DLC.csv '
 results_path = 'D:/OneDrive - ICM/Liz_NeuroMatlab/DLC_PoseAnalysis/Results'
 results_filename = "results.csv"
 
 # --------------------------------------
 # Load experiments 
 # --------------------------------------
-print('///////////////////////////////')
-print('Loading the list of experiments...')
+print('/////////////////////////////////////////////////////////////////////////////////')
+
+print('>   Reading file containing list of experiments:')
 if os.path.exists(csvFilePath):
-    print(f">   The file containing the list exists: {csvFilePath}.")
+    print(f"        The file containing the list of experiments exists: \n        {csvFilePath}.")
     try:  # Read the CSV file into a DataFrame
         experiments_table = pd.read_csv(csvFilePath, sep=';')
         path_list = experiments_table.iloc[:, 4]
-        print(f">   It lists {path_list.size} experiments.")
+        print(f"        It lists {path_list.size} experiments.")
     except Exception as e:
         print(f"Error reading the CSV file: {e}")
         exit(1)
 else:
     print(f"The file {csvFilePath} does not exists")
     exit(1)
-print('Done!')
+
 
 # For the moment this scripts parts from the fact that centroid calculation was done elsewhere
 # and saved in a csv file
@@ -147,7 +148,8 @@ elif not single_experiment:
     slmg_results_file_exist(results_path, results_filename)
 
     for i in path_list.index:
-        print(f" Multiple experiment selected {i + 1} / {path_list.size}: ")
+        print(f" *******************************************************************************")
+        print(f" Multiple experiment selected. Current experiment:  {i + 1} / {path_list.size}: ")
         path_to_experiment = path_list[i]
 
         if os.path.exists(path_to_experiment):
@@ -198,7 +200,7 @@ elif not single_experiment:
         # Trims data
         y7 = slmg_window_data(y6, window["start_time"], window["end_time"], window["duration"], window["fps"])
         # Segmentation: high vs. low speed
-        result = slmg_analyze_activity(y7, fps, threshold_method, current_experiment)
+        result = slmg_analyze_activity(y7, fps, threshold_method, current_experiment, plot=False)
         # Append new results to the results CSV file
         slmg_append_results(results_path, results_filename, current_experiment, sync_time,
                             window, threshold_method, result)
@@ -207,4 +209,4 @@ else:
     print(f"Error selecting experiment to analyze")
 
 print('done!')
-print(r'\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\')
+print('/////////////////////////////////////////////////////////////////////////////////')

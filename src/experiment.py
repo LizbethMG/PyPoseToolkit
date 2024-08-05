@@ -32,7 +32,7 @@ class Experiment:
             (self.experimentsTable.iloc[:, 3] == self.timepoint)
         ]
         if not result.empty:
-            print(f">   Experiment path: {result.iloc[0, 4]}")
+            # print(f">   Experiment path: {result.iloc[0, 4]}")
             self.path_to_experiment = result.iloc[0, 4]
 
     def get_point_positions(self):
@@ -49,17 +49,16 @@ class Experiment:
         if excel_files:
             # If there are any .xlsx files, take the first one
             file_path = excel_files[0]
-            print(f"   Found Excel file containing the data points for experiment:")
             print(
-                f"   Animal ID {self.animal}, compound {self.compound}, dose {self.dose} mg/kg, timepoint {self.timepoint} h post injection")
+                f"*** Animal ID {self.animal}, compound {self.compound}, dose {self.dose} mg/kg, timepoint {self.timepoint} h post injection ***")
             try:
                 # Read the specified sheet from the Excel file
                 with pd.ExcelFile(file_path) as xls:
                     self.point_positions = pd.read_excel(xls, sheet_name='Coord_centroid')
                     self.bodypart_positions = pd.read_excel(xls, sheet_name='Coord_bodyparts')
-                    video_min = self.bodypart_positions['Frames_ms'].iloc[-1] / (60 * 1000)  # Video duration in minutes
+                    self.video_min = round(self.bodypart_positions['Frames_ms'].iloc[-1] / (60 * 1000),2)  # Video duration in minutes
                     nb_frames = self.bodypart_positions['Frames_ms'].shape[0]
-                    print(f"       Video duration {video_min} min, with {nb_frames} frames")
+                    print(f"        Video duration: {self.video_min} min, {nb_frames} frames")
 
                     # --- When there are more than 1 camera, load the camera id information ---
                     sheet_name = 'Coord_bodyparts'
@@ -100,7 +99,8 @@ class Experiment:
                         # Verify the number of rows are now the same
                         assert self.point_positions_extended.shape[0] == self.bodypart_positions.shape[
                             0], "The number of rows in point_positions still does not match bodypart_positions"
-                        print(f"       Modified point_positions DataFrame with new rows added")
+                        print(f"        DataFrame updated with new rows.")
+
                     else:
                         self.point_positions_extended = self.point_positions
                         print(
@@ -108,4 +108,4 @@ class Experiment:
             except Exception as e:
                 print(f" X: An error occurred while reading the Excel file: {e}")
         else:
-            print("X: No Excel files found in the specified folder.")
+            print("X: No datapoints file found in the specified folder.")

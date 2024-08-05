@@ -4,14 +4,14 @@ import pandas as pd
 # Define the headers
 header = [
     "ID", "Compound", "Dose (mg/kg)", "Post-injection (h)", "Original dur (min)",
-    "Sync (s)", "Desired Start (s)", "Desired end (s)", "Threshold method",
+    "Sync (s)", "Desired duration (s)", "Desired Start (s)", "Desired end (s)", "Threshold method",
     "High activity percentage", "Low activity percentage", "Occlusion percentage"
 ]
 
 
 # Function to check if the results file exists and has all required columns
 def slmg_results_file_exist(results_dir, file_name):
-    print("*   Check if results file exists:")
+    print(">   Check if - Results - file exists:")
     file_path = os.path.join(results_dir, file_name)
     if not os.path.exists(file_path):  # Does not exists
         df = pd.DataFrame(columns=header)
@@ -55,8 +55,9 @@ def slmg_append_results(results_dir, file_name, current_experiment, sync_time, w
             "Compound": current_experiment.compound,
             "Dose (mg/kg)": current_experiment.dose,
             "Post-injection (h)": current_experiment.timepoint,
-            "Original dur (min)": window.get('duration', None) // 60 if window.get('duration') else None,
+            "Original dur (min)": current_experiment.video_min,
             "Sync (s)": sync_time,
+            "Desired duration (s)": window.get('duration', None),
             "Desired Start (s)": window.get('start_time', None),
             "Desired end (s)": window.get('end_time', None),
             "Threshold method": threshold_method,
@@ -66,7 +67,7 @@ def slmg_append_results(results_dir, file_name, current_experiment, sync_time, w
         }
 
         df = pd.DataFrame([new_result])
-        with open(file_path, 'a') as f:
+        with open(file_path, 'a', newline='') as f:
             df.to_csv(f, header=False, index=False)
         print(f"*   Results for ID {current_experiment.animal} saved.")
         return True

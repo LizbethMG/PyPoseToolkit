@@ -834,7 +834,7 @@ def slmg_window_data(data, start_time=None, end_time=None, duration=None, fps=25
     return windowed_data
 
 
-def slmg_analyze_activity(data, fps, threshold_method, experiment):
+def slmg_analyze_activity(data, fps, threshold_method, experiment, plot=True):
     """
         Analyzes periods of high and low activity in the speed data.
 
@@ -977,40 +977,42 @@ def slmg_analyze_activity(data, fps, threshold_method, experiment):
                 hoverinfo='x+y'
             ))
 
-    # Add threshold line
-    fig.add_trace(go.Scatter(
-        x=[time[0], time[-1]], y=[threshold, threshold],
-        mode='lines',
-        name='Threshold',
-        line=dict(color='#FB5607', dash='dash'),
-        showlegend=False,
-        hoverinfo='none'
-    ))
+    if plot:
+        # Add threshold line
+        fig.add_trace(go.Scatter(
+            x=[time[0], time[-1]], y=[threshold, threshold],
+            mode='lines',
+            name='Threshold',
+            line=dict(color='#FB5607', dash='dash'),
+            showlegend=False,
+            hoverinfo='none'
+        ))
 
-    # Update layout
-    fig.update_layout(
-        title=dict(
-            text=f'Periods of high and low activity - Threshold method used: {t_method}<br>'
-                 f'Animal ID {experiment.animal}, compound {experiment.compound}, dose {experiment.dose} mg/kg,'
-                 f' timepoint {experiment.timepoint} h post injection ',
-            x=0.5,  # Center the title
-            xanchor='center'
-        ),
-        xaxis_title='Time (seconds)',
-        yaxis_title='Speed (pixels per second)',
-        xaxis=dict(showline=True, linecolor='black', linewidth=1),
-        yaxis=dict(showline=True, linecolor='black', linewidth=1),
-        showlegend=False,  # Hide the legend
-        plot_bgcolor='rgba(0,0,0,0)',  # Transparent plot background
-        paper_bgcolor='rgba(0,0,0,0)'  # Transparent paper background
-    )
+        # Update layout
+        fig.update_layout(
+            title=dict(
+                text=f'Periods of high and low activity - Threshold method used: {t_method}<br>'
+                     f'Animal ID {experiment.animal}, compound {experiment.compound}, dose {experiment.dose} mg/kg,'
+                     f' timepoint {experiment.timepoint} h post injection ',
+                x=0.5,  # Center the title
+                xanchor='center'
+            ),
+            xaxis_title='Time (seconds)',
+            yaxis_title='Speed (pixels per second)',
+            xaxis=dict(showline=True, linecolor='black', linewidth=1),
+            yaxis=dict(showline=True, linecolor='black', linewidth=1),
+            showlegend=False,  # Hide the legend
+            plot_bgcolor='rgba(0,0,0,0)',  # Transparent plot background
+            paper_bgcolor='rgba(0,0,0,0)'  # Transparent paper background
+        )
 
-    # Set the renderer to browser and explicitly show the plot
-    pio.renderers.default = 'browser'
-    fig.show()
+        # Set the renderer to browser and explicitly show the plot
+        pio.renderers.default = 'browser'
+        fig.show()
 
     print(f'        Results: ')
     print(f'            High activity %: {high_percentage} ')
     print(f'            Low activity %: {low_percentage} ')
     print(f'            Occlusion activity %: {occlusion_percentage} ')
+
     return result
