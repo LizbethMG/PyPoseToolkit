@@ -4,6 +4,7 @@ This repository contains a collection of useful functions created to post-analyz
 ## Table of Contents
 - [I. Introduction](#item-one)
 - [II. Pre-processing techniques](#item-two)
+- [III. Metrics for activity analysis](#item-three)
 
 <a id="item-one"></a>
 ## I. Introduction
@@ -24,9 +25,20 @@ Here's a brief overview of the differences between Gaussian Smoothing, Savitzky-
 **Use Cases:**
 + Suitable for data with high-frequency noise.
 + When you need to preserve the overall trend of the data but want to remove rapid fluctuations.
-### Segmentation: Low vs. High activity
+
+<a id="item-three"></a>
+## III. Metrics for activity analysis
+
+### 1. Average speed
+Calculate the average speed over the duration of each recording. This provides a general sense of how quickly the animal is moving on average
+
+### 2. Speed variability
+Assess the variability in speed, using measures such as standard deviation, to understand how consistent or variable the animal's movement is.
+
+### 3. Segmentation: Low vs. High activity
+Measure the % of total time the animal is in active motion versus being stationary. 
 ```python
-result = slmg_analyze_activity(data, fps, threshold_method)
+result = slmg_computeActivityLevels(data, fps, threshold_method, experiment_info, plot=True)
 ```
 **Threshold methods:**
 1. **Mean and Standard Deviation Method:**
@@ -35,6 +47,15 @@ result = slmg_analyze_activity(data, fps, threshold_method)
    Ideal for setting intuitive and robust thresholds, especially in the presence of outliers.
 3. **Median and Median Absolute Deviation (MAD) Method:**
    Suitable for data with significant outliers or non-normal distributions.
+
+### 4. Temporal resolution
+Capture the temporal distribution of activity levels to assess the distribution and concentration of high and low activity periods throughout the recording.
+4.1 
+### Acceleration events
+Analyze the frequency and magnitude of acceleration and deceleration events. Frequent or large accelerations may indicate bursts of activity.
+### Total distance traveled (TODO)
+
+
 
 
      
