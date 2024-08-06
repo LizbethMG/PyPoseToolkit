@@ -61,6 +61,8 @@ def slmg_append_results(results_dir, file_name, current_experiment, sync_time, w
             "Desired Start (s)": window.get('start_time', None),
             "Desired end (s)": window.get('end_time', None),
             "Threshold method": threshold_method,
+            "Mean": result.get('mean', None),
+            "Std deviation": result.get('std_dev', None),
             "High activity percentage": result.get('high_activity', None),
             "Low activity percentage": result.get('low_activity', None),
             "Occlusion percentage": result.get('occlusion', None)

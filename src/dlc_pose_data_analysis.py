@@ -16,7 +16,9 @@ Classification: Categorizes the animal's activity as low, high, or NA (based on 
 the percentage time spent in each category. # .\.venv\Scripts\activate """
 from experiment import Experiment
 from pre_processing import *
+from activity_analysis import *
 from results_manager import *
+
 import sys
 import os
 import pandas as pd
@@ -122,7 +124,7 @@ if single_experiment:
                                              fps, plot=False, summary=False)
     # Compute instant speed
     print(f">   Compute instant speed:")
-    print('        Verify more than one camara used:')
+    print('*       Verify more than one camara used:')
     if hasattr(current_experiment, 'cam_used'):
         print("           More than one camara used.")
         x4, y4, y4_MeanSpeed, y4_NanRate, = slmg_inst_speed(x3, y3, fps, current_experiment.cam_used, plot=False)
@@ -135,9 +137,9 @@ if single_experiment:
     # Recalibrate data
     y6 = slmg_recalibrate_data(y5, fps, sync_time)
     # Trims data
-    y7 = slmg_window_data(y6, start_time=None, end_time=None, duration=duration, fps=fps)
+    y7 = slmg_window_data(y6, window["start_time"], window["end_time"], window["duration"], window["fps"])
     # Segmentation: high vs. low speed
-    y8 = slmg_analyze_activity(y7, fps, threshold_method, current_experiment)
+    y8 = slmg_computeActivityLevels(y7, fps, threshold_method, current_experiment)
 
     # Statistics and Metrics
 # --------------------------------------
@@ -200,7 +202,7 @@ elif not single_experiment:
         # Trims data
         y7 = slmg_window_data(y6, window["start_time"], window["end_time"], window["duration"], window["fps"])
         # Segmentation: high vs. low speed
-        result = slmg_analyze_activity(y7, fps, threshold_method, current_experiment, plot=False)
+        result = slmg_computeActivityLevels(y7, fps, threshold_method, current_experiment, plot=True)
         # Append new results to the results CSV file
         slmg_append_results(results_path, results_filename, current_experiment, sync_time,
                             window, threshold_method, result)
