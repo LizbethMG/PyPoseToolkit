@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the following metadata."
+title: "PyPoseToolkit"
+version: "1.0.0"
+doi: "10.17605/OSF.IO/87KWF"
+authors:
+  - family-names: "Mondragón-González"
+    given-names: "Sirenia Lizbeth"
+    orcid: "https://orcid.org/0000-0002-9036-7257"
+url: "https://osf.io/87kwf/"
+repository-code: "https://github.com/LizbethMG/PyPoseToolkit"
+license: "MIT License"
+
+abstract: "PyPoseToolkit is a Python project for analyzing and processing pose data from video recordings. It includes functions for preprocessing and analysing tracked body parts, along with sample data to support research applications."
