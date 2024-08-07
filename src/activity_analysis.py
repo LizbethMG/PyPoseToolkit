@@ -1,6 +1,7 @@
 import numpy as np
 import plotly.graph_objects as go
 import plotly.io as pio
+import scipy.stats as stats
 
 
 def slmg_computeActivityLevels(data, fps, threshold_method, experiment, plot=True):
@@ -27,7 +28,6 @@ def slmg_computeActivityLevels(data, fps, threshold_method, experiment, plot=Tru
 
     print(f">   Calculates speed variability.  ")
 
-
     print(f">   Segment data in low vs. high activity according to the chosen method. ")
 
     # Calculate the mean ignoring NaN values
@@ -50,7 +50,7 @@ def slmg_computeActivityLevels(data, fps, threshold_method, experiment, plot=Tru
         threshold = np.nanpercentile(data, percentile)
     elif threshold_method == 3:  # Median and Median Absolute Deviation (MAD):
         t_method = 'Median and Median Absolute Deviation (MAD)'
-        print(f'        Theshold method: Median and Median Absolute Deviation (MAD) ')
+        print(f'        Threshold method: Median and Median Absolute Deviation (MAD) ')
         # Calculate the median ignoring NaN values
         median = np.nanmedian(data)
         # Calculate the Median Absolute Deviation (MAD) ignoring NaN values
@@ -72,15 +72,54 @@ def slmg_computeActivityLevels(data, fps, threshold_method, experiment, plot=Tru
     low_percentage = round((low_activity / total) * 100, 2)
     occlusion_percentage = round((occlusion / total) * 100, 2)
 
+    # Calculate the Activity Distribution Ratio (ADR) for low, high, and occlusion periods.
+    adr_low_high_occlusion = round(low_activity / (high_activity + occlusion), 2)
+    adr_low_high = round(low_activity / high_activity,2)
+
+    # Calculate the skewness of low activity distribution over time
+    time = np.arange(total) / fps  # Time indices
+    low_activity_times = time[data <= threshold]
+
+    if len(low_activity_times) > 0:
+        skewness_low = round(stats.skew(low_activity_times), 2)
+    else:
+        skewness_low = np.nan  # Handle case with no high activity
+
+    # Calculate the temporal skewness of high activity distribution over time
+    time = np.arange(total) / fps  # Time indices
+    high_activity_times = time[data > threshold]
+
+    if len(high_activity_times) > 0:
+        skewness_high = round(stats.skew(high_activity_times), 2)
+    else:
+        skewness_high = np.nan  # Handle case with no high activity
+
+    # Calculate the entropy of activity distribution across the entire dataset
+    # Calculate probabilities
+    probabilities = [
+         high_activity / total if high_activity > 0 else 0,
+         low_activity / total if low_activity > 0 else 0,
+         occlusion / total if occlusion > 0 else 0
+    ]
+    entropy = round(-np.sum(p * np.log(p) for p in probabilities if p > 0), 2)
+    # Maximum entropy for three states
+    max_entropy = np.log2(3)
+    # Normalize entropy
+    normalized_entropy = round(entropy / max_entropy, 2) if max_entropy > 0 else 0
+
     result = {
         'mean': mean,
         'std_dev': std_dev,
         'high_activity': high_percentage,
         'low_activity': low_percentage,
-        'occlusion': occlusion_percentage
+        'occlusion': occlusion_percentage,
+        'ADR Low/High+Occ': adr_low_high_occlusion,
+        'ADR Low/High': adr_low_high,
+        'skewness_low': skewness_low,
+        'skewness_high': skewness_high,
+        'normalized entropy': normalized_entropy
     }
-    # Convert frame indices to time in seconds
-    time = np.arange(total) / fps
+
 
     # Separate into chunks
     is_high = data > threshold
@@ -191,6 +230,9 @@ def slmg_computeActivityLevels(data, fps, threshold_method, experiment, plot=Tru
     print(f'            High activity %: {high_percentage} ')
     print(f'            Low activity %: {low_percentage} ')
     print(f'            Occlusion activity %: {occlusion_percentage} ')
+    print(f'            ADR Low/High+Occ: {adr_low_high_occlusion} and ADR Low/High: {adr_low_high}')
+    print(f'            Temporal Skewness of high activity: {skewness_high} and low activity {skewness_low}')
+    print(f'            Activity entropy: {normalized_entropy} ')
     print(f'________________________________________')
 
     return result

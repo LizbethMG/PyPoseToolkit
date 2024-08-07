@@ -65,7 +65,12 @@ def slmg_append_results(results_dir, file_name, current_experiment, sync_time, w
             "Std deviation": result.get('std_dev', None),
             "High activity percentage": result.get('high_activity', None),
             "Low activity percentage": result.get('low_activity', None),
-            "Occlusion percentage": result.get('occlusion', None)
+            "Occlusion percentage": result.get('occlusion', None),
+            "ADR Low/High+Occ": result.get('adr_low_high_occlusion',None),
+            "ADR Low/High": result.get('adr_low_high', None),
+            "skewness_low": result.get('skewness_low', None),
+            "skewness_high": result.get('skewness_high', None),
+            'normalized entropy': result.get('normalized_entropy', None)
         }
 
         df = pd.DataFrame([new_result])
