@@ -74,23 +74,15 @@ Captures the temporal distribution of activity levels to assess the distribution
 
 The Activity Distribution Ratio (ADR) provides insights into the relative proportions of time spent in low activity compared to high activity and occlusion periods. The ADR helps to understand the overall balance of activity states, making it useful for comparing activity across different conditions or sessions to identify shifts in activity patterns.
 
-- **High ADR Low/High/Occlusion**:
+- **ADR Low/High/Occlusion**:
   - **Greater than 1 (>1)**: Indicates more time spent in low activity compared to the combined time of high activity and occlusion. This suggests a tendency towards inactivity.
   - **Equal to 1 (=1)**: Indicates equal time spent in low activity and the combined time of high activity and occlusion.
   - **Less than 1 (<1)**: Indicates more time spent in high activity and occlusion compared to low activity, suggesting more dynamic behavior.
 
-- **Low ADR Low/High/Occlusion**:
-  - Indicates the animal spends less time in low activity compared to high activity and occlusion combined.
-  - Suggests more dynamic behavior, with active periods or occlusions being more prevalent.
-
-- **High ADR Low/High**:
+- **ADR Low/High**:
   - **Greater than 1 (>1)**: Indicates more time spent in low activity compared to high activity. This suggests inactivity dominates.
   - **Equal to 1 (=1)**: Indicates equal time spent in low and high activity.
   - **Less than 1 (<1)**: Indicates more time spent in high activity compared to low activity, suggesting a predominance of active behavior.
-
-- **Low ADR Low/High**:
-  - Indicates the animal spends more time in high activity compared to low activity alone.
-  - Suggests a predominance of active behavior.
 
 #### 4.2 Temporal Skewness
 
