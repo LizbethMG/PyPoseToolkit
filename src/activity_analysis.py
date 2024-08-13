@@ -31,9 +31,9 @@ def slmg_computeActivityLevels(data, fps, threshold_method, experiment, plot=Tru
     print(f">   Segment data in low vs. high activity according to the chosen method. ")
 
     # Calculate the mean ignoring NaN values
-    mean = np.nanmean(data)
+    mean = round(np.nanmean(data),2)
     # Calculate the standard deviation ignoring NaN values
-    std_dev = np.nanstd(data)
+    std_dev = round(np.nanstd(data),2)
 
     if threshold_method == 1:
         factor = 1
@@ -119,7 +119,6 @@ def slmg_computeActivityLevels(data, fps, threshold_method, experiment, plot=Tru
         'skewness_high': skewness_high,
         'normalized entropy': normalized_entropy
     }
-
 
     # Separate into chunks
     is_high = data > threshold

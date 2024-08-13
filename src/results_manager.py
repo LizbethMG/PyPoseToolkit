@@ -3,10 +3,12 @@ import pandas as pd
 
 # Define the headers
 header = [
-    "ID", "Compound", "Dose (mg/kg)", "Post-injection (h)", "Original dur (min)",
-    "Sync (s)", "Desired duration (s)", "Desired Start (s)", "Desired end (s)", "Threshold method",
-    "High activity percentage", "Low activity percentage", "Occlusion percentage"
-]
+     "ID", "Compound", "Dose (mg/kg)", "Post-injection (h)", "Original dur (min)",
+     "Sync (s)", "Desired duration (s)", "Desired Start (s)", "Desired end (s)", "Threshold method",
+     "High activity percentage", "Low activity percentage", "Occlusion percentage",
+     "Mean", "Std deviation", "ADR Low/High+Occ", "ADR Low/High",
+     "skewness_low", "skewness_high", "normalized entropy"
+ ]
 
 
 # Function to check if the results file exists and has all required columns
@@ -66,14 +68,18 @@ def slmg_append_results(results_dir, file_name, current_experiment, sync_time, w
             "High activity percentage": result.get('high_activity', None),
             "Low activity percentage": result.get('low_activity', None),
             "Occlusion percentage": result.get('occlusion', None),
-            "ADR Low/High+Occ": result.get('adr_low_high_occlusion',None),
-            "ADR Low/High": result.get('adr_low_high', None),
+            "ADR Low/High+Occ": result.get('ADR Low/High+Occ', None),
+            "ADR Low/High": result.get('ADR Low/High', None),
             "skewness_low": result.get('skewness_low', None),
             "skewness_high": result.get('skewness_high', None),
-            'normalized entropy': result.get('normalized_entropy', None)
+            'normalized entropy': result.get('normalized entropy', None)
         }
 
-        df = pd.DataFrame([new_result])
+        # Ensure all keys in header are present, even if they're not used
+        full_result = {col: new_result.get(col, None) for col in header}
+
+        # Now use full_result to create the DataFrame
+        df = pd.DataFrame([full_result])
         with open(file_path, 'a', newline='') as f:
             df.to_csv(f, header=False, index=False)
         print(f"*   Results for ID {current_experiment.animal} saved.")

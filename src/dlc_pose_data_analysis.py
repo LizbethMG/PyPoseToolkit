@@ -71,6 +71,7 @@ results_filename = "results.csv"
 # --------------------------------------
 print('/////////////////////////////////////////////////////////////////////////////////')
 
+
 print('>   Reading file containing list of experiments:')
 if os.path.exists(csvFilePath):
     print(f"        The file containing the list of experiments exists: \n        {csvFilePath}.")
@@ -134,7 +135,7 @@ if single_experiment:
     # Smoothing using median filter
     y5, y5_NanRate = slmg_median_smooth_2(x4, y4, window_size, plot=False)
     recap_results_2 = slmg_recap_preprocessing_2(y4, y5, y4_NanRate, y5_NanRate, fps)
-    sync_time = slmg_get_sync_time(current_experiment)
+    # sync_time = slmg_get_sync_time(current_experiment)
     # Recalibrate data
     y6 = slmg_recalibrate_data(y5, fps, sync_time)
     # Trims data

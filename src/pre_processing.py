@@ -568,14 +568,12 @@ def slmg_inst_speed(x, y, fps, cam_used, plot=True):
 
     return x_wcam, y_wcam, meanSpeed, nanRate
 
-def slmg_get_sync_time(current_experiment):
+# def slmg_get_sync_time(current_experiment):
 
-    
 
-""" ---------- Pre-processing functions to handle a single dataset -------------------
-These functions are designed for cases where the x-coordinate represents the time vector
- and the y-coordinate represents the data values (e.g., speed). 
-"""
+"""---------- Pre-processing functions to handle a single dataset -------------------\n"
+ "These functions are designed for cases where the x-coordinate represents the time vector\n"
+ " and the y-coordinate represents the data values (e.g., speed). \n"""
 
 
 def slmg_savgol_smooth(x, y, window_length=51, polyorder=3, plot=True):
