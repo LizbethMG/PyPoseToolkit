@@ -42,9 +42,9 @@ sigma = 2  # for Gaussian smoothing
 s = 100  # for Spline smoothing
 window_length = 30  # for Savitzky-Golay filter
 polyorder = 3  # for Savitzky-Golay filter
-sync_time = 60  # Sync signal in s (For example LED in video on)
+sync_time = 1  # Sync signal in s (For example LED in video on)
 window = { # Used to trim the data, define duration or start & end time otherwise 'None'
-    "duration": 600,  # in s for trimming the data (10 min = 10 x 60 s)
+    "duration": 480,  # in s for trimming the data (10 min = 10 x 60 s) (8 min x 60 s = 480)
     "start_time": None,  # in s for trimming the data (1 min = 1 x 60)
     "end_time":  None,  # in s for trimming the data (11 min = 11 x 60)
     "fps": 25,
@@ -86,12 +86,13 @@ else:
     print(f"The file {csvFilePath} does not exists")
     exit(1)
 
+""" Uncomment if necessary:
 # Calculate durations for all experiments using the imported function
 durations, min_duration, max_duration = get_recording_durations(experiments_table, fps)
 print(f"Durations for each experiment: {durations}")
 print(f"Minimum duration: {min_duration} min")
 print(f"Maximum duration: {max_duration} min")
-
+"""
 
 # For the moment this scripts parts from the fact that centroid calculation was done elsewhere
 # and saved in a csv file
@@ -210,7 +211,7 @@ elif not single_experiment:
         # Trims data
         y7 = slmg_window_data(y6, window["start_time"], window["end_time"], window["duration"], window["fps"])
         # Segmentation: high vs. low speed
-        result = slmg_computeActivityLevels(y7, fps, threshold_method, current_experiment, plot=True)
+        result = slmg_computeActivityLevels(y7, fps, threshold_method, current_experiment, plot=False)
         # Append new results to the results CSV file
         slmg_append_results(results_path, results_filename, current_experiment, sync_time,
                             window, threshold_method, result)
