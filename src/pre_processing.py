@@ -10,6 +10,44 @@ pio.renderers.default = 'iframe'
 import warnings
 import numpy as np
 
+import pandas as pd
+from experiment import Experiment
+
+
+def get_recording_durations(experiments_table, fps):
+
+    durations = []
+
+    # Iterate over each experiment
+    for i in experiments_table.index:
+        experiment = Experiment(
+            animal=experiments_table.iloc[i, 0],
+            compound=experiments_table.iloc[i, 1],
+            dose=experiments_table.iloc[i, 2],  # mg/kg
+            timepoint=experiments_table.iloc[i, 3],  # hours
+            experiments_table=experiments_table,
+        )
+
+        if hasattr(experiment, 'video_min'):
+            duration = experiment.video_min
+            durations.append(duration)
+        else:
+            print(f"Warning: Duration not found for experiment {i + 1}")
+            durations.append(None)
+
+    # Filter out None values in durations
+    valid_durations = [d for d in durations if d is not None]
+
+    # Calculate min, max and mean durations
+    if valid_durations:
+        min_duration = min(valid_durations)
+        max_duration = max(valid_durations)
+    else:
+        min_duration = max_duration = None
+
+    return durations, min_duration, max_duration
+
+
 """ ---------- Pre-processing functions for handling separate datasets -------------------
  These functions are useful for scenarios where you have two different sets of data,
  such as the x and y pixel coordinates of tracked points  The functions aim to

@@ -86,6 +86,12 @@ else:
     print(f"The file {csvFilePath} does not exists")
     exit(1)
 
+# Calculate durations for all experiments using the imported function
+durations, min_duration, max_duration = get_recording_durations(experiments_table, fps)
+print(f"Durations for each experiment: {durations}")
+print(f"Minimum duration: {min_duration} min")
+print(f"Maximum duration: {max_duration} min")
+
 
 # For the moment this scripts parts from the fact that centroid calculation was done elsewhere
 # and saved in a csv file
